@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elder Care App – MVP Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans+Kannada:wght@400;700&family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF4F2;--ink:#12262B;--mute:#5B7176;--card:#fff;--teal:#1B6B6F;--teal2:#D6ECEA;--gold:#F4B63F;--red:#D64545;--green:#2E8B57;--line:#D5E1DE;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1A1C;--ink:#E8F1EF;--mute:#93AAAE;--card:#1A2A2D;--teal:#5CC0BF;--teal2:#20393B;--line:#2C4144}}
+:root[data-theme="dark"]{--bg:#0F1A1C;--ink:#E8F1EF;--mute:#93AAAE;--card:#1A2A2D;--teal:#5CC0BF;--teal2:#20393B;--line:#2C4144}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Atkinson Hyperlegible','Noto Sans Kannada','Noto Sans Devanagari',system-ui,sans-serif;line-height:1.4}
+h1{font-size:1.5rem;margin:0 0 4px}
+header{max-width:900px;margin:0 auto;padding:24px 16px 8px}
+header p{margin:0;color:var(--mute)}
+.stage{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;padding:16px}
+.col{width:330px;max-width:100%}
+.col>h2{font-size:1rem;margin:0 0 8px;color:var(--mute);font-weight:700}
+.phone{position:relative;height:620px;background:var(--card);border:8px solid #22363A;border-radius:34px;overflow:hidden;display:flex;flex-direction:column}
+.screen{flex:1;overflow-y:auto;padding:16px}
+button{font:inherit;color:inherit;cursor:pointer;border:0}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+/* parent */
+.top{display:flex;justify-content:space-between;align-items:center}
+.langs{display:flex;gap:4px}.lang{background:var(--teal2);color:var(--teal);border-radius:20px;padding:6px 10px;font-weight:700;font-size:.8rem}.lang[aria-pressed=true]{background:var(--teal);color:#fff}
+.greet{font-size:1.6rem;font-weight:700;margin:14px 0 2px}
+.date{color:var(--mute);margin-bottom:14px}
+.big{width:100%;border-radius:22px;padding:22px 12px;font-size:1.6rem;font-weight:700;display:block}
+.ok{background:var(--teal);color:#fff}
+.ok.done{background:var(--green)}
+.next{background:var(--teal2);border-radius:18px;padding:14px;margin:14px 0}
+.next b{display:block;font-size:1.2rem}
+.next small{color:var(--mute);font-size:1rem}
+.sos{background:var(--red);color:#fff;margin-top:14px;font-size:1.4rem;padding:18px}
+.overlay{position:absolute;inset:0;background:var(--gold);color:#12262B;display:none;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:24px;gap:10px;z-index:5}
+.overlay.on{display:flex}
+.overlay .pill{font-size:4rem}
+.overlay h3{font-size:1.7rem;margin:0}
+.overlay p{font-size:1.2rem;margin:0 0 10px}
+.overlay .big{background:#12262B;color:#fff}
+.overlay .later{background:transparent;text-decoration:underline;font-size:1.05rem;padding:8px}
+.sosconf{background:var(--red);color:#fff}
+.sosconf .big{background:#fff;color:var(--red)}
+/* family */
+.tabs{display:flex;overflow-x:auto;border-top:1px solid var(--line);background:var(--card)}
+.tabs button{flex:none;padding:12px 13px;font-size:.78rem;background:none;color:var(--mute);font-weight:700}
+.tabs button[aria-selected=true]{color:var(--teal);box-shadow:inset 0 3px 0 var(--teal)}
+.who{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.av{width:44px;height:44px;border-radius:50%;background:var(--gold);color:#12262B;display:grid;place-items:center;font-weight:700;font-size:1.2rem}
+.who small{color:var(--mute);display:block}
+.row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.row .grow{flex:1}
+.row small{color:var(--mute);display:block}
+.tag{font-size:.82rem;font-weight:700;padding:4px 10px;border-radius:12px;white-space:nowrap}
+.t-ok{background:#D7F0E1;color:#1D6B41}
+.t-wait{background:#EEF0F1;color:#4D5F63}
+.t-bad{background:#F8D9D9;color:#A12B2B}
+:root[data-theme="dark"] .t-ok,:root:not([data-theme="light"]) .t-ok{--x:0}
+.status{border-radius:16px;padding:14px;margin-bottom:12px;background:var(--teal2)}
+.status.bad{background:#F8D9D9;color:#5A1616}
+.status b{font-size:1.1rem;display:block}
+.sec{font-weight:700;margin:16px 0 4px}
+.alert{border-left:5px solid var(--gold);padding:8px 10px;margin:8px 0;background:var(--teal2);border-radius:0 10px 10px 0}
+.alert.sev{border-color:var(--red)}
+.alert small{color:var(--mute);display:block}
+.empty{color:var(--mute);padding:16px 0}
+form{display:grid;gap:8px;margin-top:10px}
+input,select{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+.btn{background:var(--teal);color:#fff;border-radius:12px;padding:12px;font-weight:700}
+.week{display:flex;gap:6px;margin-top:6px}
+.week span{flex:1;text-align:center;font-size:.75rem;color:var(--mute)}
+.week i{display:block;height:34px;border-radius:8px;margin-bottom:4px}
+.toast{position:absolute;left:12px;right:12px;top:10px;background:#12262B;color:#fff;border-radius:14px;padding:12px;font-size:.95rem;transform:translateY(-120px);transition:transform .3s;z-index:9}
+.toast.on{transform:none}
+.picks{display:flex;gap:8px;margin:10px 0}.picks .lang{flex:1;padding:12px 6px;font-size:.95rem;border-radius:12px}.note{color:var(--mute);font-size:.9rem;margin:0 0 12px}.chk{width:auto!important;transform:scale(1.4)}.spk{font-size:1rem!important;background:rgba(18,38,43,.12);border-radius:12px;padding:8px 12px}
+.chk2{width:auto!important}.calls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.callb{display:block;text-align:center;text-decoration:none;background:var(--teal2);color:var(--teal);border-radius:16px;padding:14px 6px;font-weight:700;font-size:1.1rem}.clab{display:flex;gap:6px;align-items:center;font-size:.9rem;margin-top:4px}
+.phl{display:inline-block;position:relative;margin-top:4px;color:var(--teal);font-weight:700;font-size:.85rem;cursor:pointer}.phl:focus-within{outline:3px solid var(--gold);outline-offset:2px}.vh{position:absolute;opacity:0;width:1px;height:1px;left:0;top:0}.ph{display:grid;place-items:center;background:var(--teal2);border-radius:12px;flex:none}
+.stk{font-weight:700}.stk.low{color:var(--red)}.rf{background:none;color:var(--teal);font-weight:700;font-size:.85rem;padding:4px 0;margin-right:12px;text-decoration:underline}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.kpi{background:var(--teal2);border-radius:14px;padding:10px 4px;text-align:center}.kpi b{font-size:1.3rem;display:block}.kpi small{color:var(--mute);font-size:.72rem}
+.bars{display:flex;gap:6px;height:110px;margin:12px 0 4px}.bar{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;font-size:.72rem;color:var(--mute)}.bc{flex:1;width:100%;display:flex;align-items:flex-end}.bar i{display:block;width:100%;border-radius:6px 6px 0 0;margin-bottom:4px}
+.vmsg{background:var(--teal2);border-radius:20px;padding:14px;margin:12px 0}.vmsg.new{background:var(--gold);color:#12262B;animation:pulse 1.6s ease-in-out 3}
+@keyframes pulse{50%{transform:scale(1.02)}}
+.vm-h{font-weight:700;font-size:1.05rem}.vm-t{font-size:1.3rem;margin:6px 0 4px;line-height:1.35}
+.vmsg .big{background:#12262B;color:#fff;padding:16px;font-size:1.4rem;margin-top:10px}.vmsg .big.alt{background:transparent;color:inherit;border:3px solid currentColor}
+.rec.on{background:var(--red)}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.chip{background:var(--teal2);color:var(--teal);border-radius:14px;padding:8px 12px;font-weight:700;font-size:.85rem;text-align:left}
+@media (prefers-reduced-motion:reduce){.vmsg.new{animation:none}}
+.sim{max-width:720px;margin:8px auto 40px;padding:0 16px}
+.sim h2{font-size:1rem;margin:0 0 8px}
+.sim div{display:flex;flex-wrap:wrap;gap:8px}
+.sim button{background:var(--card);border:2px solid var(--teal);color:var(--teal);border-radius:12px;padding:10px 14px;font-weight:700}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Elder care app: MVP prototype</h1>
+  <p>Use the parent phone (left) and watch the family phone (right) update. Or use the simulator buttons below.</p>
+</header>
+
+<div class="stage">
+  <div class="col">
+    <h2>Parent: Amma's phone</h2>
+    <div class="phone" id="pp">
+      <div class="screen" id="pscreen"></div>
+      <div class="overlay" id="medAlert">
+        <div class="pill" id="maPic">💊</div>
+        <h3 id="maTitle"></h3>
+        <p id="maSub"></p>
+        <p class="spk" id="maSpk" hidden></p>
+        <button class="big" id="maTaken"></button>
+        <button class="later" id="maLater"></button>
+      </div>
+      <div class="overlay sosconf" id="sosScreen">
+        <div class="pill">🆘</div>
+        <h3 id="sosT"></h3>
+        <p id="sosP"></p>
+        <button class="big" id="sosYes"></button>
+        <button class="later" id="sosNo" style="color:#fff"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>Family: Ravi's phone</h2>
+    <div class="phone" id="fp">
+      <div class="toast" id="toast"></div>
+      <div class="screen" id="fscreen"></div>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-t="today" aria-selected="true">Today</button>
+        <button role="tab" data-t="meds" aria-selected="false">Meds</button>
+        <button role="tab" data-t="alerts" aria-selected="false">Alerts</button>
+        <button role="tab" data-t="voice" aria-selected="false">Voice</button>
+        <button role="tab" data-t="report" aria-selected="false">Report</button>
+        <button role="tab" data-t="speaker" aria-selected="false">Speaker</button>
+        <button role="tab" data-t="contacts" aria-selected="false">Contacts</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="sim">
+  <h2>Simulator</h2>
+  <div>
+    <button id="s1">Ring next medicine reminder</button>
+    <button id="s2">Parent ignores it for 30 min</button>
+    <button id="s3">Miss the 10 AM check-in</button>
+    <button id="s6">Ring next meal reminder</button>
+    <button id="s5">Amma says "Alexa, I took it"</button>
+    <button id="s4">Reset day</button>
+  </div>
+</section>
+
+<script>
+const T={
+ en:{hi:"Good morning, Amma",ok:"I'm OK 👍",okd:"✓ Checked in",next:"Next medicine",none:"All medicines done",sos:"SOS: Call for help",take:"Taken ✓",later:"Remind me in 10 min",sosT:"Send SOS?",sosP:"These people will get your location:",yes:"Yes, send help",no:"Cancel",time:"Time for your",lang:"ಕನ್ನಡ"},
+ kn:{hi:"ಶುಭೋದಯ ಅಮ್ಮ",ok:"ನಾನು ಚೆನ್ನಾಗಿದ್ದೇನೆ 👍",okd:"✓ ಹೇಳಿದ್ದೀರಿ",next:"ಮುಂದಿನ ಔಷಧಿ",none:"ಎಲ್ಲಾ ಔಷಧಿ ಆಯಿತು",sos:"SOS: ಸಹಾಯ ಬೇಕು",take:"ತೆಗೆದುಕೊಂಡೆ ✓",later:"10 ನಿಮಿಷದ ನಂತರ ನೆನಪಿಸಿ",sosT:"SOS ಕಳುಹಿಸಲೇ?",sosP:"ಇವರಿಗೆ ನಿಮ್ಮ ಸ್ಥಳ ಹೋಗುತ್ತದೆ:",yes:"ಹೌದು, ಕಳುಹಿಸಿ",no:"ರದ್ದು",time:"ಸಮಯ ಆಯಿತು:",lang:"English"},
+ hi:{hi:"सुप्रभात अम्मा",ok:"मैं ठीक हूँ 👍",okd:"✓ बता दिया",next:"अगली दवा",none:"सारी दवाइयाँ हो गईं",sos:"SOS: मदद चाहिए",take:"ले ली ✓",later:"10 मिनट बाद याद दिलाएँ",sosT:"SOS भेजें?",sosP:"इन लोगों को आपकी लोकेशन मिलेगी:",yes:"हाँ, मदद भेजें",no:"रद्द करें",time:"समय हो गया:"}
+};
+const LN={en:'English',kn:'ಕನ್ನಡ',hi:'हिन्दी'};
+const svgUri=x=>'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="18" fill="#E6EFEC"/>'+x+'</svg>');
+const PILL={
+ round:c=>svgUri(`<circle cx="50" cy="50" r="27" fill="${c}" stroke="#0005" stroke-width="3"/><path d="M28 50h44" stroke="#0004" stroke-width="3"/>`),
+ oval:c=>svgUri(`<ellipse cx="50" cy="50" rx="34" ry="20" transform="rotate(-25 50 50)" fill="${c}" stroke="#0005" stroke-width="3"/>`),
+ cap:c=>svgUri(`<g transform="rotate(-35 50 50)"><rect x="18" y="36" width="64" height="28" rx="14" fill="${c}" stroke="#0005" stroke-width="3"/><path d="M50 36h18a14 14 0 0 1 0 28H50z" fill="#fff" stroke="#0005" stroke-width="3"/></g>`)
+};
+let newImg=null;
+const thumb=(m,z)=>`<img src="${m.img}" alt="${esc(m.n)} photo" style="width:${z}px;height:${z}px;object-fit:cover;border-radius:12px;flex:none">`;
+const ph=z=>`<div class="ph" style="width:${z}px;height:${z}px;font-size:${z/2}px" aria-hidden="true">💊</div>`;
+const init=()=>({cid:5,contacts:[
+ {id:1,name:'Ravi (Son)',phone:'+91 98450 00001',role:'family',sos:true},
+ {id:2,name:'Priya (Daughter)',phone:'+91 98450 00002',role:'family',sos:true},
+ {id:3,name:'Dr. Rao',phone:'+91 98450 00003',role:'doctor',sos:false},
+ {id:4,name:'Mr. Shetty (Neighbour)',phone:'+91 98450 00004',role:'other',sos:true}],spk:null,pick:'alexa',lang:'en',checkin:false,lastActive:'8:05 AM',tab:'today',
+ meds:[{n:'BP tablet',d:'1 tablet',t:'8:00 AM',s:'pending',stock:4,img:PILL.round('#fff')},{n:'Sugar tablet',d:'1 tablet',t:'2:00 PM',s:'pending',stock:20,img:PILL.oval('#F2A3B5')},{n:'Vitamin D',d:'1 capsule',t:'9:00 PM',s:'pending',stock:12,img:PILL.cap('#F4B63F')}],
+ alerts:[],voice:[],hist:[1,1,0.5,1,1,1,0],
+ meals:[{n:'Breakfast',t:'8:30 AM',ic:'🍳',s:'pending',meal:true},{n:'Lunch',t:'1:00 PM',ic:'🍛',s:'pending',meal:true},{n:'Dinner',t:'8:00 PM',ic:'🍲',s:'pending',meal:true}],
+ week:[{m:1,c:1,e:1},{m:.67,c:1,e:1},{m:1,c:1,e:.67},{m:1,c:0,e:.67},{m:1,c:1,e:1},{m:.67,c:1,e:.67}]});
+let S=init(),cur=null;
+const ROLE={family:'Family',doctor:'Doctor',other:'Neighbour / other'};
+const esc=t=>t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sosNames=()=>S.contacts.filter(c=>c.sos).map(c=>c.name.split(' (')[0]);
+const $=id=>document.getElementById(id);
+const now=()=>new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+const tx=k=>T[S.lang][k];
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),3200)}
+function addAlert(msg,sev){S.alerts.unshift({msg,sev,at:now()});toast((sev?'🚨 ':'🔔 ')+msg)}
+const MN={en:{Breakfast:'Breakfast',Lunch:'Lunch',Dinner:'Dinner'},kn:{Breakfast:'ಬೆಳಗಿನ ತಿಂಡಿ',Lunch:'ಮಧ್ಯಾಹ್ನದ ಊಟ',Dinner:'ರಾತ್ರಿ ಊಟ'},hi:{Breakfast:'नाश्ता',Lunch:'दोपहर का खाना',Dinner:'रात का खाना'}};
+const EAT={en:'Had it ✓',kn:'ತಿಂದೆ ✓',hi:'खा लिया ✓'}, NM={en:'Next meal',kn:'ಮುಂದಿನ ಊಟ',hi:'अगला खाना'};
+const mealName=m=>MN[S.lang][m.n];
+const nextMeal=()=>S.meals.find(m=>m.s==='pending');
+const lowMeds=()=>S.meds.filter(m=>m.stock<=5);
+const t12=v=>{const [h,m]=v.split(':').map(Number);return ((h%12)||12)+':'+String(m).padStart(2,'0')+(h<12?' AM':' PM')};
+const t24=x=>{const r=/(\d+):(\d+) (AM|PM)/.exec(x);let h=+r[1]%12;if(r[3]==='PM')h+=12;return String(h).padStart(2,'0')+':'+r[2]};
+const mtag=st=>st==='taken'?'<span class="tag t-ok">Eaten</span>':st==='missed'?'<span class="tag t-bad">Missed</span>':'<span class="tag t-wait">Upcoming</span>';
+function checkStock(m){if(m.stock<=5)addAlert(m.n+' is running low: '+m.stock+' day'+(m.stock==1?'':'s')+' of stock left. Order a refill.',true)}
+function refill(i){S.meds[i].stock+=30;toast(S.meds[i].n+' stock is now '+S.meds[i].stock);render()}
+function setMeal(i,v){S.meals[i].t=t12(v);toast(S.meals[i].n+' reminder set for '+S.meals[i].t);renderParent()}
+function sendReport(){const n=S.contacts.filter(c=>c.role==='family').map(c=>c.name.split(' (')[0]).join(', ');S.alerts.unshift({msg:'Weekly report sent to '+n+' on WhatsApp / SMS',at:now()});toast('Weekly report sent to '+n)}
+let vid=0;const rec={on:false,url:null,dur:0,mr:null,timer:null,t0:0};
+const fmtS=x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
+const QM=['Good morning Amma! Please take your tablets.','Have you had your lunch?','I will call you in the evening.','Love you Amma. Take care.'];
+const VM={en:{msg:'Message from',play:'▶ Play',again:'▶ Play again',reply:'👍 Reply: OK',replied:'✓ Replied'},kn:{msg:'ಸಂದೇಶ:',play:'▶ ಕೇಳಿ',again:'▶ ಮತ್ತೆ ಕೇಳಿ',reply:'👍 ಸರಿ ಎಂದು ಉತ್ತರಿಸಿ',replied:'✓ ಉತ್ತರಿಸಿದ್ದೀರಿ'},hi:{msg:'संदेश:',play:'▶ सुनें',again:'▶ फिर से सुनें',reply:'👍 जवाब: ठीक है',replied:'✓ जवाब दिया'}};
+function vmCard(){const m=S.voice[0];if(!m)return '';const L=VM[S.lang];
+ return `<div class="vmsg ${m.played?'':'new'}"><div class="vm-h">💌 ${L.msg} ${esc(m.from)}</div><div class="vm-t">${m.kind==='text'?esc(m.text):'🎙 '+fmtS(m.dur)}</div><button class="big" id="vmp">${m.played?L.again:L.play}</button>${m.played?(m.replied?`<p style="margin:10px 0 0;font-weight:700">${L.replied}</p>`:`<button class="big alt" id="vmr">${L.reply}</button>`):''}</div>`}
+function playMsg(id){const m=S.voice.find(x=>x.id===id);if(!m)return;
+ if(m.kind==='audio'){new Audio(m.url).play().catch(()=>toast('Could not play audio here'))}
+ else if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(m.text);u.lang=/[\u0C80-\u0CFF]/.test(m.text)?'kn-IN':/[\u0900-\u097F]/.test(m.text)?'hi-IN':'en-IN';u.rate=.85;speechSynthesis.speak(u)}
+ if(!m.played){m.played=now();addAlert('Amma listened to your message')}
+ render()}
+function replyMsg(id){const m=S.voice.find(x=>x.id===id);m.replied=true;addAlert('Amma replied 👍 to your message');render()}
+function addVoice(m){S.voice.unshift({id:++vid,from:'Ravi',at:now(),played:null,replied:false,...m});toast('Message sent to Amma');render()}
+function sendText(t){t=(t||'').trim();if(t)addVoice({kind:'text',text:t})}
+function sendRec(){addVoice({kind:'audio',url:rec.url,dur:rec.dur});rec.url=null;renderFamily()}
+function discardRec(){rec.url=null;renderFamily()}
+async function recToggle(){
+ if(rec.on){rec.mr.stop();return}
+ try{
+  const st=await navigator.mediaDevices.getUserMedia({audio:true});
+  const chunks=[];rec.mr=new MediaRecorder(st);
+  rec.mr.ondataavailable=e=>chunks.push(e.data);
+  rec.mr.onstop=()=>{clearInterval(rec.timer);st.getTracks().forEach(t=>t.stop());rec.on=false;rec.url=URL.createObjectURL(new Blob(chunks,{type:rec.mr.mimeType}));rec.dur=Math.max(1,Math.round((Date.now()-rec.t0)/1000));renderFamily()};
+  rec.mr.start();rec.on=true;rec.url=null;rec.t0=Date.now();
+  rec.timer=setInterval(()=>{const x=Math.round((Date.now()-rec.t0)/1000),e=$('rect');if(e)e.textContent=fmtS(x);if(x>=30)rec.mr.stop()},500);
+  renderFamily();
+ }catch(e){toast("Recording isn't available in this preview. Type a message below and it will be read aloud on Amma's phone.")}
+}
+function nextMed(){return S.meds.find(m=>m.s==='pending')}
+
+function renderParent(){
+ const nm=nextMed();
+ $('pscreen').innerHTML=`
+  <div class="top"><span>${new Date().toLocaleDateString([], {weekday:'long',day:'numeric',month:'short'})}</span><div class="langs">${Object.keys(LN).map(k=>`<button class="lang" data-l="${k}" aria-pressed="${S.lang===k}">${LN[k]}</button>`).join('')}</div></div>
+  <div class="greet">${tx('hi')}</div>
+  ${vmCard()}
+  <button class="big ok ${S.checkin?'done':''}" id="okb" ${S.checkin?'disabled':''}>${S.checkin?tx('okd'):tx('ok')}</button>
+  <div class="next" style="display:flex;gap:12px;align-items:center">${nm?(nm.img?thumb(nm,76):ph(76)):''}<div><small>${tx('next')}</small><b>${nm?nm.n+' · '+nm.t:tx('none')}</b>${nm?`<small>${nm.d}</small>`:''}</div></div>
+  ${nextMeal()?`<div class="next" style="display:flex;gap:12px;align-items:center"><div class="ph" style="width:76px;height:76px;font-size:38px">${nextMeal().ic}</div><div><small>${NM[S.lang]}</small><b>${mealName(nextMeal())} · ${nextMeal().t}</b></div></div>`:''}
+  <button class="big sos" id="sosb">🆘 ${tx('sos')}</button>
+  <div class="calls">${S.contacts.slice(0,4).map(c=>`<a class="callb" href="tel:${c.phone.replace(/\s/g,'')}">📞 ${esc(c.name.split(' (')[0])}</a>`).join('')}</div>`;
+ document.querySelectorAll('.lang').forEach(b=>b.onclick=()=>{S.lang=b.dataset.l;renderParent()});
+ const vp=$('vmp');if(vp)vp.onclick=()=>playMsg(S.voice[0].id);const vr=$('vmr');if(vr)vr.onclick=()=>replyMsg(S.voice[0].id);
+ $('okb').onclick=()=>{S.checkin=true;S.lastActive=now();addAlert('Amma checked in: "I\'m OK"');render()};
+ $('sosb').onclick=()=>{$('sosT').textContent=tx('sosT');$('sosP').textContent=sosNames().length?tx('sosP')+' '+sosNames().join(', '):'No SOS contacts are set. Ask your family to add one.';$('sosYes').textContent=tx('yes');$('sosNo').textContent=tx('no');$('sosScreen').classList.add('on')};
+}
+$('sosYes').onclick=()=>{$('sosScreen').classList.remove('on');const n=sosNames();addAlert('SOS from Amma. Location: Vidyanagar, Hubballi. Call now.',true);if(n.length)S.alerts.unshift({msg:'SOS push + SMS sent to '+n.join(', '),at:now()});render()};
+$('sosNo').onclick=()=>$('sosScreen').classList.remove('on');
+
+function ring(it){
+ cur=it||nextMed(); if(!cur){toast('Nothing pending right now.');return}
+ const nn=cur.meal?mealName(cur):cur.n;$('maTitle').textContent=tx('time')+' '+nn;
+ $('maPic').innerHTML=cur.meal?cur.ic:cur.img?`<img src="${cur.img}" alt="${esc(cur.n)}" style="width:170px;height:170px;object-fit:cover;border-radius:26px;border:4px solid #12262B">`:'💊';
+ $('maSub').textContent=(cur.meal?'':cur.d+' · ')+cur.t;
+ $('maTaken').textContent=cur.meal?EAT[S.lang]:tx('take');$('maLater').textContent=tx('later');
+ const sp=$('maSpk');
+ if(S.spk&&S.spk.remind){sp.hidden=false;sp.textContent='🔊 '+S.spk.name+' says: "'+tx('time')+' '+nn+'"';S.alerts.unshift({msg:'Reminder for '+nn+' announced on '+S.spk.name,at:now()})}else sp.hidden=true;
+ $('medAlert').classList.add('on');
+}
+$('maTaken').onclick=()=>{cur.s='taken';S.lastActive=now();$('medAlert').classList.remove('on');
+ if(cur.meal)addAlert('Amma had her '+cur.n.toLowerCase());else{cur.stock=Math.max(0,cur.stock-1);addAlert('Amma took her '+cur.n);checkStock(cur)}
+ render()};
+$('maLater').onclick=()=>{$('medAlert').classList.remove('on')};
+function ignore(){
+ if(!cur||cur.s!=='pending'){cur=nextMed()||nextMeal()}
+ if(!cur){toast('No pending medicines left today.');return}
+ cur.s='missed';$('medAlert').classList.remove('on');addAlert('Amma missed her '+cur.n+' ('+cur.t+'). Tap to call.',true);render();
+}
+
+const tag=s=>s==='taken'?'<span class="tag t-ok">Taken</span>':s==='missed'?'<span class="tag t-bad">Missed</span>':'<span class="tag t-wait">Upcoming</span>';
+function renderFamily(){
+ const missed=S.meds.concat(S.meals).filter(m=>m.s==='missed').length, sos=S.alerts.some(a=>a.msg.startsWith('SOS'));
+ let h='';
+ if(S.tab==='today'){
+  const bad=missed||sos||S.checkin==='missed';
+  h=`<div class="who"><div class="av">A</div><div><b>Amma</b><small>Last active ${S.lastActive}</small></div></div>
+  <div class="status ${bad?'bad':''}"><b>${sos?'SOS sent. Call Amma now':bad?'Needs attention':'All good so far'}</b>${bad?(missed?missed+' reminder(s) missed today':'Check-in missing'):'Check-in and medicines on track'}</div>
+  <div class="row"><div class="grow"><b>Morning check-in</b><small>Due by 10:00 AM</small></div>${S.checkin===true?'<span class="tag t-ok">Done</span>':S.checkin==='missed'?'<span class="tag t-bad">Missed</span>':'<span class="tag t-wait">Waiting</span>'}</div>
+  ${S.meds.map(m=>`<div class="row"><div class="grow"><b>${m.n}</b><small>${m.t} · ${m.d}</small></div>${tag(m.s)}</div>`).join('')}
+  ${S.meals.map(m=>`<div class="row"><div class="ph" style="width:40px;height:40px;font-size:20px">${m.ic}</div><div class="grow"><b>${m.n}</b><small>${m.t}</small></div>${mtag(m.s)}</div>`).join('')}
+  ${lowMeds().map(m=>`<div class="alert sev">🛒 ${esc(m.n)}: only ${m.stock} day${m.stock==1?'':'s'} of stock left<small>Order a refill soon</small></div>`).join('')}
+  <div class="sec">Last 7 days</div>
+  <div class="week">${['M','T','W','T','F','S','S'].map((d,i)=>`<span><i style="background:${S.hist[i]===1?'var(--green)':S.hist[i]===0?'var(--red)':'var(--gold)'}"></i>${d}</span>`).join('')}</div>
+  <small style="color:var(--mute)">Green: all done · Yellow: some missed · Red: none</small>`;
+ }else if(S.tab==='meds'){
+  h=`<div class="sec" style="margin-top:0">Amma's medicines</div>
+  ${S.meds.map((m,i)=>`<div class="row">${m.img?thumb(m,52):ph(52)}<div class="grow"><b>${esc(m.n)}</b><small>${esc(m.d)} · daily at ${m.t}</small><small class="stk ${m.stock<=5?'low':''}">${m.stock<=5?'⚠ ':''}${m.stock} left · ${m.stock} day${m.stock==1?'':'s'}</small><button class="rf" onclick="refill(${i})">+ Refilled (add 30)</button><label class="phl">📷 ${m.img?'Change photo':'Add photo'}<input class="vh" type="file" accept="image/*" onchange="medPhoto(this,${i})"></label></div></div>`).join('')}
+  <div class="sec">Add a medicine</div>
+  <form id="addf"><input id="fn" placeholder="Medicine name" required><input id="fd" placeholder="Dose (e.g. 1 tablet)" required><input id="fs" type="number" min="0" inputmode="numeric" placeholder="Tablets in stock (e.g. 30)" required><input id="ft" type="time" value="08:00" required><div style="display:flex;gap:12px;align-items:center"><label class="phl" style="margin:0">📷 Add tablet photo<input class="vh" type="file" accept="image/*" id="fimg"></label><img id="fprev" alt="Preview" hidden style="width:52px;height:52px;object-fit:cover;border-radius:12px"></div><button class="btn" type="submit">Save and sync to Amma's phone</button></form>
+  <div class="sec">Meal reminders</div><p class="note">Amma is reminded at these times.</p>
+  ${S.meals.map((m,i)=>`<div class="row"><div class="ph" style="width:40px;height:40px;font-size:20px">${m.ic}</div><div class="grow"><b>${m.n}</b></div><input type="time" value="${t24(m.t)}" style="width:125px" aria-label="${m.n} time" onchange="setMeal(${i},this.value)"></div>`).join('')}`;
+ }else if(S.tab==='contacts'){
+  const n=S.contacts.filter(c=>c.sos).length;
+  h=`<div class="sec" style="margin-top:0">People (${S.contacts.length})</div>
+  <p class="note">Everyone ticked "Notify on SOS" gets a push and SMS with Amma's location. Max 3. Now: ${n}/3.</p>
+  ${S.contacts.map(c=>`<div class="row"><div class="grow"><b>${esc(c.name)}</b><small>${ROLE[c.role]} · <a href="tel:${c.phone.replace(/\s/g,'')}" style="color:var(--teal)">${c.phone}</a></small><label class="clab"><input class="chk2" type="checkbox" ${c.sos?'checked':''} onchange="cSos(${c.id},this.checked)"> Notify on SOS</label></div><button class="tag t-wait" onclick="cDel(${c.id})" aria-label="Remove ${esc(c.name)}">Remove</button></div>`).join('')}
+  <div class="sec">Add a contact</div>
+  <form onsubmit="addContact(event)"><input id="cn" placeholder="Name" required><input id="cp" type="tel" inputmode="tel" placeholder="Mobile number, e.g. 98450 12345" required><select id="cr" aria-label="Type"><option value="family">Family</option><option value="doctor">Doctor</option><option value="other">Neighbour / other</option></select><label class="clab"><input id="cs" class="chk2" type="checkbox"> Notify on SOS</label><button class="btn" type="submit">Save contact</button></form>`;
+ }else if(S.tab==='report'){
+  const tm=S.meds.filter(m=>m.s==='taken').length/S.meds.length, te=S.meals.filter(m=>m.s==='taken').length/3;
+  const all=S.week.concat([{m:tm,c:S.checkin===true?1:0,e:te}]);
+  const lab=all.map((_,i)=>new Date(Date.now()-(6-i)*864e5).toLocaleDateString([], {weekday:'short'}));
+  const avg=k=>Math.round(all.reduce((a,x)=>a+x[k],0)/7*100);
+  const sc=d=>(d.m+d.c+d.e)/3, notes=[];
+  all.slice(0,6).forEach((d,i)=>{if(d.m<1)notes.push('Missed a medicine on '+lab[i]);if(!d.c)notes.push('No check-in on '+lab[i]);if(d.e<1)notes.push('Skipped a meal on '+lab[i])});
+  lowMeds().forEach(m=>notes.push('Refill '+m.n+': '+m.stock+' day'+(m.stock==1?'':'s')+' left'));
+  const r=(a,b)=>new Date(Date.now()-a*864e5).toLocaleDateString([], {day:'numeric',month:'short'});
+  h=`<div class="sec" style="margin-top:0">Amma's week</div><small style="color:var(--mute)">${r(6)} to ${r(0)} (today so far)</small>
+  <div class="kpis"><div class="kpi"><b>${avg('m')}%</b><small>Medicines taken</small></div><div class="kpi"><b>${all.filter(x=>x.c).length}/7</b><small>Check-ins</small></div><div class="kpi"><b>${avg('e')}%</b><small>Meals eaten</small></div></div>
+  <div class="bars">${all.map((d,i)=>`<div class="bar"><div class="bc"><i style="height:${Math.max(6,sc(d)*100)}%;background:${sc(d)>=.85?'var(--green)':sc(d)>=.6?'var(--gold)':'var(--red)'}"></i></div><span>${lab[i].slice(0,2)}</span></div>`).join('')}</div>
+  <small style="color:var(--mute)">Each bar = medicines + check-in + meals that day</small>
+  <div class="sec">Needs attention</div>
+  ${notes.length?notes.slice(0,6).map(n=>`<div class="alert">${esc(n)}</div>`).join(''):'<div class="empty">Nothing to worry about this week 🎉</div>'}
+  <button class="btn" style="width:100%;margin-top:14px" onclick="sendReport()">Send report to family now</button>
+  <p class="note" style="margin-top:8px">Also sent automatically every Sunday at 8 PM by WhatsApp / SMS.</p>`;
+ }else if(S.tab==='voice'){
+  h=`<div class="sec" style="margin-top:0">Send Amma a message</div>
+  <p class="note">Amma hears it with one tap on her phone. Your own voice is the most comforting.</p>
+  ${rec.url?`<div class="status"><b>Recorded ${fmtS(rec.dur)}</b><audio controls src="${rec.url}" style="width:100%;margin-top:6px"></audio></div><button class="btn" style="width:100%" onclick="sendRec()">Send to Amma</button><button class="rf" style="margin-top:10px" onclick="discardRec()">Discard and re-record</button>`:`<button class="btn rec ${rec.on?'on':''}" style="width:100%" onclick="recToggle()">${rec.on?'⏹ Stop · <span id="rect">0:00</span>':'🎙 Tap to record (max 30 seconds)'}</button>`}
+  <div class="sec">Or type it (read aloud on her phone)</div>
+  <div class="chips">${QM.map((q,i)=>`<button class="chip" onclick="sendText(QM[${i}])">${q}</button>`).join('')}</div>
+  <form onsubmit="event.preventDefault();sendText($('vt').value)"><input id="vt" placeholder="Type your own message…" required><button class="btn" type="submit">Send</button></form>
+  <div class="sec">Sent messages</div>
+  ${S.voice.length?S.voice.map(m=>`<div class="row"><div class="av" style="width:38px;height:38px;font-size:1.1rem">${m.kind==='audio'?'🎙':'💬'}</div><div class="grow"><b>${m.kind==='audio'?'Voice message · '+fmtS(m.dur):esc(m.text)}</b><small>Sent ${m.at}${m.played?' · Heard '+m.played:''}</small></div><span class="tag ${m.played?'t-ok':'t-wait'}">${m.replied?'Replied 👍':m.played?'Heard':'Waiting'}</span></div>`).join(''):'<div class="empty">No messages yet.</div>'}`;
+ }else if(S.tab==='speaker'){
+  const k=S.spk;
+  h=k?`<div class="status"><b>🔊 ${k.name}</b>Connected · ${k.type==='alexa'?'Amazon Alexa':'Google Home'}</div>
+   <div class="row"><div class="grow"><b>Speak medicine reminders</b><small>Said aloud when a dose is due</small></div><input class="chk" type="checkbox" aria-label="Speak medicine reminders" ${k.remind?'checked':''} onchange="spkRemind(this.checked)"></div>
+   <div class="row"><div class="grow"><b>Voice reply</b><small>Amma can say "I took my medicine"</small></div><span class="tag t-ok">On</span></div>
+   <button class="btn" style="width:100%;margin-top:14px;background:var(--red)" onclick="spkOff()">Disconnect speaker</button>`
+  :`<div class="sec" style="margin-top:0">Connect a smart speaker</div>
+   <p class="note">The speaker says the reminder out loud, even when Amma's phone is in another room.</p>
+   <div class="picks"><button class="lang" aria-pressed="${S.pick==='alexa'}" onclick="spkPick('alexa')">Alexa / Echo</button><button class="lang" aria-pressed="${S.pick==='google'}" onclick="spkPick('google')">Google Home</button></div>
+   <p class="note">${S.pick==='alexa'?'Amma or you enable our skill once in the Alexa app and allow reminders. After that, reminders are set for her remotely.':'Google has closed voice actions for outside apps, so this option is beta. It needs a small always-on hub at home on the same Wi-Fi to cast the message to the speaker.'}</p>
+   <button class="btn" style="width:100%" onclick="spkConnect()">Connect ${S.pick==='alexa'?'Alexa':'Google Home'}</button>`;
+ }else{
+  h=`<div class="sec" style="margin-top:0">Alerts</div>`+(S.alerts.length?S.alerts.map(a=>`<div class="alert ${a.sev?'sev':''}">${a.msg}<small>${a.at}</small></div>`).join(''):'<div class="empty">No alerts yet. Use the parent phone or simulator to create some.</div>');
+ }
+ $('fscreen').innerHTML=h;
+ document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===S.tab));
+ const f=$('addf');if(f){newImg=null;const fi=$('fimg');fi.onchange=()=>fi.files[0]&&compress(fi.files[0]).then(u=>{newImg=u;$('fprev').src=u;$('fprev').hidden=false})}
+ if(f)f.onsubmit=e=>{e.preventDefault();const [hh,mm]=$('ft').value.split(':').map(Number);const t=((hh%12)||12)+':'+String(mm).padStart(2,'0')+(hh<12?' AM':' PM');S.meds.push({n:$('fn').value,d:$('fd').value,t,s:'pending',stock:+$('fs').value,img:newImg});toast('Saved. Amma\'s phone will remind her at '+t);render()};
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;renderFamily()});
+function addContact(e){e.preventDefault();
+ const d=$('cp').value.replace(/[\s-]/g,'').replace(/^(\+91|0)/,'');
+ if(!/^[6-9]\d{9}$/.test(d)){toast('Enter a valid 10-digit mobile number');return}
+ const sos=$('cs').checked;
+ if(sos&&S.contacts.filter(c=>c.sos).length>=3){toast('Only 3 SOS contacts allowed. Untick one first.');return}
+ S.contacts.push({id:S.cid++,name:$('cn').value.trim(),phone:'+91 '+d.slice(0,5)+' '+d.slice(5),role:$('cr').value,sos});
+ toast('Contact saved');render()}
+function cSos(id,v){const c=S.contacts.find(x=>x.id===id);if(v&&S.contacts.filter(x=>x.sos).length>=3){toast('Only 3 SOS contacts allowed. Untick one first.');renderFamily();return}c.sos=v;render()}
+function cDel(id){S.contacts=S.contacts.filter(c=>c.id!==id);render()}
+function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,320/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.8))};im.src=r.result};r.readAsDataURL(file)})}
+function medPhoto(inp,i){if(!inp.files[0])return;compress(inp.files[0]).then(u=>{S.meds[i].img=u;toast('Photo saved. Amma will see it with the reminder.');render()})}
+function spkPick(t){S.pick=t;renderFamily()}
+function spkConnect(){S.spk={type:S.pick,name:S.pick==='alexa'?'Living room Echo':'Bedroom Nest Mini',remind:true};toast('Connected to '+S.spk.name);render()}
+function spkOff(){S.spk=null;renderFamily()}
+function spkRemind(v){S.spk.remind=v;toast(v?'Reminders will be spoken':'Speaker reminders off')}
+function render(){renderParent();renderFamily()}
+
+$('s1').onclick=()=>ring();
+$('s6').onclick=()=>ring(nextMeal());
+$('s2').onclick=ignore;
+$('s3').onclick=()=>{if(S.checkin===true){toast('Amma already checked in. Reset the day first.');return}S.checkin='missed';addAlert('Amma has not checked in by 10:00 AM. Tap to call.',true);render()};
+$('s4').onclick=()=>{const k=S.spk,c=S.contacts,i=S.cid;S=init();S.spk=k;S.contacts=c;S.cid=i;render()};
+$('s5').onclick=()=>{if(!S.spk){toast('Connect a speaker first (Speaker tab)');return}if(!$('medAlert').classList.contains('on')){toast('Ring a medicine reminder first');return}$('maTaken').click()};
+render();
+</script>
+</body>
+</html>
