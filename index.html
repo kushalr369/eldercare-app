@@ -45,7 +45,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .sosconf .big{background:#fff;color:var(--red)}
 /* family */
 .tabs{display:flex;overflow-x:auto;border-top:1px solid var(--line);background:var(--card)}
-.tabs button{flex:none;padding:12px 13px;font-size:.78rem;background:none;color:var(--mute);font-weight:700}
+.tabs button{flex:1;padding:12px 4px;font-size:.78rem;background:none;color:var(--mute);font-weight:700}
 .tabs button[aria-selected=true]{color:var(--teal);box-shadow:inset 0 3px 0 var(--teal)}
 .who{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .av{width:44px;height:44px;border-radius:50%;background:var(--gold);color:#12262B;display:grid;place-items:center;font-weight:700;font-size:1.2rem}
@@ -87,6 +87,11 @@ input,select{font:inherit;padding:10px;border-radius:10px;border:1px solid var(-
 .vmsg .big{background:#12262B;color:#fff;padding:16px;font-size:1.4rem;margin-top:10px}.vmsg .big.alt{background:transparent;color:inherit;border:3px solid currentColor}
 .rec.on{background:var(--red)}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.chip{background:var(--teal2);color:var(--teal);border-radius:14px;padding:8px 12px;font-weight:700;font-size:.85rem;text-align:left}
 @media (prefers-reduced-motion:reduce){.vmsg.new{animation:none}}
+.fbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 0}.fbar b{font-size:1.2rem}
+.hamb{width:46px;height:46px;border-radius:12px;background:var(--teal2);color:var(--teal);display:grid;place-items:center}
+.menu{position:absolute;right:12px;top:62px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:6px;z-index:8;min-width:200px}
+.menu[hidden]{display:none}.menu button{display:block;width:100%;text-align:left;padding:14px;border-radius:10px;background:none;font-weight:700;font-size:1rem}.menu button[aria-current=true]{background:var(--teal2);color:var(--teal)}
+.rfp{background:var(--teal2);border-radius:14px;padding:10px;margin-top:8px}.rfp label{font-weight:700;font-size:.9rem;display:block;margin-bottom:6px}.rfp .two{display:flex;gap:8px;margin-top:8px}.rfp .two .btn{flex:1;margin:0}.rfp .gray{background:var(--mute)}
 .sim{max-width:720px;margin:8px auto 40px;padding:0 16px}
 .sim h2{font-size:1rem;margin:0 0 8px}
 .sim div{display:flex;flex-wrap:wrap;gap:8px}
@@ -127,15 +132,18 @@ input,select{font:inherit;padding:10px;border-radius:10px;border:1px solid var(-
     <h2>Family: Ravi's phone</h2>
     <div class="phone" id="fp">
       <div class="toast" id="toast"></div>
+      <div class="fbar"><b id="ftitle">Today</b><button class="hamb" id="menub" aria-label="Open menu" aria-haspopup="true" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button></div>
+      <div class="menu" id="menu" hidden>
+        <button data-t="contacts">👥 Contacts</button>
+        <button data-t="speaker">🔊 Speaker</button>
+        <button data-t="voice">🎙 Voice message</button>
+      </div>
       <div class="screen" id="fscreen"></div>
       <div class="tabs" role="tablist">
         <button role="tab" data-t="today" aria-selected="true">Today</button>
         <button role="tab" data-t="meds" aria-selected="false">Meds</button>
         <button role="tab" data-t="alerts" aria-selected="false">Alerts</button>
-        <button role="tab" data-t="voice" aria-selected="false">Voice</button>
         <button role="tab" data-t="report" aria-selected="false">Report</button>
-        <button role="tab" data-t="speaker" aria-selected="false">Speaker</button>
-        <button role="tab" data-t="contacts" aria-selected="false">Contacts</button>
       </div>
     </div>
   </div>
@@ -197,7 +205,13 @@ const t12=v=>{const [h,m]=v.split(':').map(Number);return ((h%12)||12)+':'+Strin
 const t24=x=>{const r=/(\d+):(\d+) (AM|PM)/.exec(x);let h=+r[1]%12;if(r[3]==='PM')h+=12;return String(h).padStart(2,'0')+':'+r[2]};
 const mtag=st=>st==='taken'?'<span class="tag t-ok">Eaten</span>':st==='missed'?'<span class="tag t-bad">Missed</span>':'<span class="tag t-wait">Upcoming</span>';
 function checkStock(m){if(m.stock<=5)addAlert(m.n+' is running low: '+m.stock+' day'+(m.stock==1?'':'s')+' of stock left. Order a refill.',true)}
-function refill(i){S.meds[i].stock+=30;toast(S.meds[i].n+' stock is now '+S.meds[i].stock);render()}
+function rfStart(i){S.refill={i,step:'enter',n:''};renderFamily();setTimeout(()=>{const e=$('rfn');if(e)e.focus()},0)}
+function rfCancel(){S.refill=null;renderFamily()}
+function rfNext(e){e.preventDefault();const v=Number($('rfn').value);if(!Number.isInteger(v)||v<1||v>60){toast('Enter a whole number from 1 to 60');return}S.refill.n=v;S.refill.step='confirm';renderFamily()}
+function rfConfirm(){const r=S.refill,m=S.meds[r.i];m.stock+=r.n;S.refill=null;addAlert('Refilled '+m.n+': added '+r.n+' tablets (now '+m.stock+')');render()}
+function rfPanel(i){const r=S.refill;if(!r||r.i!==i)return '';const m=S.meds[i];
+ if(r.step==='enter')return `<form class="rfp" onsubmit="rfNext(event)"><label for="rfn">How many tablets are you adding? (1 to 60)</label><input id="rfn" type="number" min="1" max="60" step="1" inputmode="numeric" value="${r.n}" required><div class="two"><button class="btn" type="submit">Next</button><button class="btn gray" type="button" onclick="rfCancel()">Cancel</button></div></form>`;
+ return `<div class="rfp" role="alertdialog" aria-label="Confirm refill"><b>Add ${r.n} tablet${r.n==1?'':'s'} to ${esc(m.n)}?</b><small style="display:block;margin-top:4px">Stock will change from ${m.stock} to ${m.stock+r.n}.</small><div class="two"><button class="btn" onclick="rfConfirm()">Confirm</button><button class="btn gray" onclick="rfCancel()">Cancel</button></div></div>`}
 function setMeal(i,v){S.meals[i].t=t12(v);toast(S.meals[i].n+' reminder set for '+S.meals[i].t);renderParent()}
 function sendReport(){const n=S.contacts.filter(c=>c.role==='family').map(c=>c.name.split(' (')[0]).join(', ');S.alerts.unshift({msg:'Weekly report sent to '+n+' on WhatsApp / SMS',at:now()});toast('Weekly report sent to '+n)}
 let vid=0;const rec={on:false,url:null,dur:0,mr:null,timer:null,t0:0};
@@ -286,7 +300,7 @@ function renderFamily(){
   <small style="color:var(--mute)">Green: all done · Yellow: some missed · Red: none</small>`;
  }else if(S.tab==='meds'){
   h=`<div class="sec" style="margin-top:0">Amma's medicines</div>
-  ${S.meds.map((m,i)=>`<div class="row">${m.img?thumb(m,52):ph(52)}<div class="grow"><b>${esc(m.n)}</b><small>${esc(m.d)} · daily at ${m.t}</small><small class="stk ${m.stock<=5?'low':''}">${m.stock<=5?'⚠ ':''}${m.stock} left · ${m.stock} day${m.stock==1?'':'s'}</small><button class="rf" onclick="refill(${i})">+ Refilled (add 30)</button><label class="phl">📷 ${m.img?'Change photo':'Add photo'}<input class="vh" type="file" accept="image/*" onchange="medPhoto(this,${i})"></label></div></div>`).join('')}
+  ${S.meds.map((m,i)=>`<div class="row">${m.img?thumb(m,52):ph(52)}<div class="grow"><b>${esc(m.n)}</b><small>${esc(m.d)} · daily at ${m.t}</small><small class="stk ${m.stock<=5?'low':''}">${m.stock<=5?'⚠ ':''}${m.stock} left · ${m.stock} day${m.stock==1?'':'s'}</small><button class="rf" onclick="rfStart(${i})">+ Refill</button><label class="phl">📷 ${m.img?'Change photo':'Add photo'}<input class="vh" type="file" accept="image/*" onchange="medPhoto(this,${i})"></label>${rfPanel(i)}</div></div>`).join('')}
   <div class="sec">Add a medicine</div>
   <form id="addf"><input id="fn" placeholder="Medicine name" required><input id="fd" placeholder="Dose (e.g. 1 tablet)" required><input id="fs" type="number" min="0" inputmode="numeric" placeholder="Tablets in stock (e.g. 30)" required><input id="ft" type="time" value="08:00" required><div style="display:flex;gap:12px;align-items:center"><label class="phl" style="margin:0">📷 Add tablet photo<input class="vh" type="file" accept="image/*" id="fimg"></label><img id="fprev" alt="Preview" hidden style="width:52px;height:52px;object-fit:cover;border-radius:12px"></div><button class="btn" type="submit">Save and sync to Amma's phone</button></form>
   <div class="sec">Meal reminders</div><p class="note">Amma is reminded at these times.</p>
@@ -295,7 +309,7 @@ function renderFamily(){
   const n=S.contacts.filter(c=>c.sos).length;
   h=`<div class="sec" style="margin-top:0">People (${S.contacts.length})</div>
   <p class="note">Everyone ticked "Notify on SOS" gets a push and SMS with Amma's location. Max 3. Now: ${n}/3.</p>
-  ${S.contacts.map(c=>`<div class="row"><div class="grow"><b>${esc(c.name)}</b><small>${ROLE[c.role]} · <a href="tel:${c.phone.replace(/\s/g,'')}" style="color:var(--teal)">${c.phone}</a></small><label class="clab"><input class="chk2" type="checkbox" ${c.sos?'checked':''} onchange="cSos(${c.id},this.checked)"> Notify on SOS</label></div><button class="tag t-wait" onclick="cDel(${c.id})" aria-label="Remove ${esc(c.name)}">Remove</button></div>`).join('')}
+  ${S.contacts.map(c=>c.id===S.editId?editRow(c):`<div class="row"><div class="grow"><b>${esc(c.name)}</b><small>${ROLE[c.role]} · <a href="tel:${c.phone.replace(/\s/g,'')}" style="color:var(--teal)">${c.phone}</a></small><label class="clab"><input class="chk2" type="checkbox" ${c.sos?'checked':''} onchange="cSos(${c.id},this.checked)"> Notify on SOS</label></div><div style="display:flex;flex-direction:column;gap:6px"><button class="tag t-wait" onclick="cEdit(${c.id})" aria-label="Edit ${esc(c.name)}">✏️ Edit</button><button class="tag t-wait" onclick="cDel(${c.id})" aria-label="Remove ${esc(c.name)}">Remove</button></div></div>`).join('')}
   <div class="sec">Add a contact</div>
   <form onsubmit="addContact(event)"><input id="cn" placeholder="Name" required><input id="cp" type="tel" inputmode="tel" placeholder="Mobile number, e.g. 98450 12345" required><select id="cr" aria-label="Type"><option value="family">Family</option><option value="doctor">Doctor</option><option value="other">Neighbour / other</option></select><label class="clab"><input id="cs" class="chk2" type="checkbox"> Notify on SOS</label><button class="btn" type="submit">Save contact</button></form>`;
  }else if(S.tab==='report'){
@@ -340,10 +354,17 @@ function renderFamily(){
  }
  $('fscreen').innerHTML=h;
  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===S.tab));
+ $('ftitle').textContent=TITLES[S.tab];document.querySelectorAll('#menu button').forEach(b=>b.setAttribute('aria-current',b.dataset.t===S.tab));
  const f=$('addf');if(f){newImg=null;const fi=$('fimg');fi.onchange=()=>fi.files[0]&&compress(fi.files[0]).then(u=>{newImg=u;$('fprev').src=u;$('fprev').hidden=false})}
  if(f)f.onsubmit=e=>{e.preventDefault();const [hh,mm]=$('ft').value.split(':').map(Number);const t=((hh%12)||12)+':'+String(mm).padStart(2,'0')+(hh<12?' AM':' PM');S.meds.push({n:$('fn').value,d:$('fd').value,t,s:'pending',stock:+$('fs').value,img:newImg});toast('Saved. Amma\'s phone will remind her at '+t);render()};
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;renderFamily()});
+const TITLES={today:'Today',meds:'Medicines',alerts:'Alerts',report:'Weekly report',contacts:'Contacts',speaker:'Smart speaker',voice:'Voice message'};
+function menuSet(o){$('menu').hidden=!o;$('menub').setAttribute('aria-expanded',o)}
+$('menub').onclick=e=>{e.stopPropagation();menuSet($('menu').hidden)};
+document.querySelectorAll('#menu button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;menuSet(false);renderFamily()});
+document.addEventListener('click',e=>{if(!$('menu').contains(e.target))menuSet(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')menuSet(false)});
 function addContact(e){e.preventDefault();
  const d=$('cp').value.replace(/[\s-]/g,'').replace(/^(\+91|0)/,'');
  if(!/^[6-9]\d{9}$/.test(d)){toast('Enter a valid 10-digit mobile number');return}
@@ -352,6 +373,12 @@ function addContact(e){e.preventDefault();
  S.contacts.push({id:S.cid++,name:$('cn').value.trim(),phone:'+91 '+d.slice(0,5)+' '+d.slice(5),role:$('cr').value,sos});
  toast('Contact saved');render()}
 function cSos(id,v){const c=S.contacts.find(x=>x.id===id);if(v&&S.contacts.filter(x=>x.sos).length>=3){toast('Only 3 SOS contacts allowed. Untick one first.');renderFamily();return}c.sos=v;render()}
+function editRow(c){return `<form class="row" style="flex-direction:column;align-items:stretch;gap:8px" onsubmit="cSave(event,${c.id})"><b>Edit contact</b><input id="en" value="${esc(c.name)}" required aria-label="Name"><input id="ep" type="tel" inputmode="tel" value="${esc(c.phone.replace('+91 ',''))}" required aria-label="Mobile number"><div style="display:flex;gap:8px"><button class="btn" type="submit" style="flex:1">Save</button><button class="btn" type="button" style="flex:1;background:var(--mute)" onclick="cCancel()">Cancel</button></div></form>`}
+function cEdit(id){S.editId=id;renderFamily()}
+function cCancel(){S.editId=null;renderFamily()}
+function cSave(e,id){e.preventDefault();const d=$('ep').value.replace(/[\s-]/g,'').replace(/^(\+91|0)/,'');
+ if(!/^[6-9]\d{9}$/.test(d)){toast('Enter a valid 10-digit mobile number');return}
+ const c=S.contacts.find(x=>x.id===id);c.name=$('en').value.trim();c.phone='+91 '+d.slice(0,5)+' '+d.slice(5);S.editId=null;toast('Contact updated');render()}
 function cDel(id){S.contacts=S.contacts.filter(c=>c.id!==id);render()}
 function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,320/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.8))};im.src=r.result};r.readAsDataURL(file)})}
 function medPhoto(inp,i){if(!inp.files[0])return;compress(inp.files[0]).then(u=>{S.meds[i].img=u;toast('Photo saved. Amma will see it with the reminder.');render()})}
