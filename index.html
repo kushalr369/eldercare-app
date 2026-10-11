@@ -440,6 +440,31 @@ function locAll(root){const w=document.createTreeWalker(root||document.body,Node
 new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')locNode(m.target);else m.addedNodes.forEach(n=>{if(n.nodeType===3)locNode(n);else if(n.nodeType===1)locAll(n)})})).observe(document.body,{childList:true,subtree:true,characterData:true});
 function saveOB(){try{const o={};['P','F'].forEach(w=>{if(O[w].step==='done')o[w]={gender:O[w].gender,name:O[w].name,peer:O[w].peer}});sessionStorage.setItem('ec_ob',JSON.stringify(o))}catch(e){}}
 function loadOB(){try{const o=JSON.parse(sessionStorage.getItem('ec_ob')||'{}');['P','F'].forEach(w=>{if(o[w])Object.assign(O[w],o[w],{step:'done'})})}catch(e){}}
+/* ===== Online linking with Supabase (used when the two values below are filled in) ===== */
+const SB_URL='https://prmwojzalzrgstgntcty.supabase.co', SB_KEY='sb_publishable_XCm3AaED3dnIiFPazwjY8g_TUZuQLNW';
+const sbOn=()=>!/PASTE/.test(SB_URL+SB_KEY);
+async function sb(path,opt={}){const h={apikey:SB_KEY,'Content-Type':'application/json',...(opt.headers||{})};if(SB_KEY.startsWith('eyJ'))h.Authorization='Bearer '+SB_KEY;
+ const r=await fetch(SB_URL.replace(/\/$/,'')+'/rest/v1/'+path,{...opt,headers:h});const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+ if(!r.ok){const er=new Error((j&&j.message)||String(r.status));er.status=r.status;throw er}return j}
+async function sbCreate(){O.P.err='';
+ for(let i=0;i<4;i++){try{await sb('pairings',{method:'POST',body:JSON.stringify({code:O.P.code,elder_name:O.P.name,elder_gender:O.P.gender})});return true}
+  catch(e){if(e.status===409){O.P.code=genCode();continue}O.P.err='Could not reach the server. Check your internet and tap New code.';return false}}
+ return false}
+let pollT=null;
+function stopPoll(){clearTimeout(pollT);pollT=null}
+function startPoll(){stopPoll();if(!sbOn())return;
+ const tick=async()=>{if(O.P.step!=='link')return;
+  try{const r=await sb('pairings?code=eq.'+O.P.code+'&select=status,caregiver_name,caregiver_gender');
+   if(r&&r[0]&&r[0].status==='linked'){O.P.peer={name:r[0].caregiver_name,gender:r[0].caregiver_gender};O.P.step='connected';afterLink('P');return}}catch(e){}
+  pollT=setTimeout(tick,2000)};
+ pollT=setTimeout(tick,1500)}
+async function joinRemote(code){const f=O.F;
+ try{const since=new Date(Date.now()-15*60000).toISOString();
+  const r=await sb('pairings?code=eq.'+code+'&status=eq.waiting&created_at=gte.'+encodeURIComponent(since),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({caregiver_name:f.name,caregiver_gender:f.gender,status:'linked'})});
+  if(f.pending!==code)return;
+  if(r&&r.length){f.peer={name:r[0].elder_name,gender:r[0].elder_gender};f.step='connected';f.pending=null;f.status='';f.err='';afterLink('F')}
+  else{f.pending=null;f.status='';f.err='Could not find this code, or it was already used or expired. Ask your parent to check their screen.';renderOB('F')}}
+ catch(e){f.pending=null;f.status='';f.err='Could not reach the server. Check your internet and try again.';renderOB('F')}}
 /* talking between the two phones (same page, or two tabs of one browser) */
 let bc=null;try{bc=new BroadcastChannel('eldercare-pair');bc.onmessage=e=>handleMsg(e.data)}catch(e){}
 function send(m){handleMsg(m);if(bc)try{bc.postMessage(m)}catch(e){}}
@@ -449,6 +474,7 @@ function handleMsg(m){
  if(m.t==='ok'&&O.F.step==='link'&&O.F.pending===m.code){clearTimeout(O.F.to);stopCam();O.F.peer={name:m.name,gender:m.gender};O.F.step='connected';O.F.pending=null;O.F.status='';O.F.err='';afterLink('F')}
 }
 function joinCode(code){const f=O.F;f.err='';f.status='Connecting…';f.pending=code;stopCam();renderOB('F');
+ if(sbOn()){joinRemote(code);return}
  send({t:'join',code,name:f.name,gender:f.gender});
  clearTimeout(f.to);f.to=setTimeout(()=>{if(f.step==='link'&&f.pending===code){f.pending=null;f.status='';f.err="Could not find this code. Check it, and make sure your parent's phone is showing it.";renderOB('F')}},1800)}
 function codeInput(el){const d=el.value.replace(/\D/g,'').slice(0,6);el.value=d.length>3?d.slice(0,3)+' '+d.slice(3):d;if(d.length===6)joinCode(d)}
@@ -464,9 +490,9 @@ function scanLoop(){const v=$('vid');if(!v||!O.F.cam)return;
  scanT=setTimeout(scanLoop,250)}
 function obLang(k){S.lang=k;renderParent();renderOB('P')}
 function obGender(w,g){O[w].gender=g;O[w].step='name';renderOB(w)}
-function obName(e,w){e.preventDefault();const inp=e.target.querySelector('input'),v=inp.value.trim();if(!v){inp.focus();return}O[w].name=v.slice(0,30);O[w].step='link';if(w==='P')O.P.code=genCode();renderOB(w)}
-function obBack(w){stopCam();O[w].step=O[w].step==='link'?'name':'gender';renderOB(w)}
-function newCode(){O.P.code=genCode();renderOB('P')}
+async function obName(e,w){e.preventDefault();const inp=e.target.querySelector('input'),v=inp.value.trim();if(!v){inp.focus();return}O[w].name=v.slice(0,30);O[w].step='link';if(w==='P'){O.P.code=genCode();O.P.err='';if(sbOn())await sbCreate();renderOB('P');startPoll()}else renderOB(w)}
+function obBack(w){stopCam();stopPoll();O[w].step=O[w].step==='link'?'name':'gender';renderOB(w)}
+async function newCode(){stopPoll();O.P.code=genCode();if(sbOn())await sbCreate();renderOB('P');startPoll()}
 function obDone(w){O[w].step='done';saveOB();renderOB(w);render();locAll()}
 function renderOB(w){
  const o=O[w],el=$(w==='P'?'obP':'obF'),on=o.step!=='done';el.classList.toggle('on',on);if(!on){el.innerHTML='';return}
@@ -476,7 +502,7 @@ function renderOB(w){
  if(o.step==='gender')h+=`<h3>${t.g}</h3><button class="gb" onclick="obGender('${w}','male')"><span>${em('male',!P)}</span>${t.m}</button><button class="gb" onclick="obGender('${w}','female')"><span>${em('female',!P)}</span>${t.f}</button>`;
  else if(o.step==='name')h+=`${back}<h3>${t.n}</h3><form onsubmit="obName(event,'${w}')"><input id="obn" class="bigin" maxlength="30" placeholder="${t.np}" value="${esc(o.name)}" autocomplete="off" required><button class="btn" style="width:100%;margin-top:12px;font-size:1.3rem;padding:16px">${t.next}</button></form>`;
  else if(o.step==='connected'){const pe=o.peer;h+=`<div style="text-align:center;margin-top:30px"><div style="font-size:64px">✅</div><h3>${t.ok}</h3><p style="font-size:1.2rem">${t.with}</p><div style="font-size:3rem">${em(pe.gender,P)}</div><b style="font-size:1.6rem">${esc(pe.name)}</b><button class="btn" style="width:100%;margin-top:22px;font-size:1.3rem;padding:16px" onclick="obDone('${w}')">${t.go}</button></div>`}
- else if(P)h+=`${back}<h3>${t.show}</h3><div style="text-align:center"><div class="qrbox" id="qrbox" role="img" aria-label="QR code"></div><p>${t.or}</p><div class="codebig">${fmtCode(o.code)}</div><p class="wait">⏳ ${t.wait}</p><button class="rf" onclick="newCode()">${t.nc}</button></div>`;
+ else if(P)h+=`${back}<h3>${t.show}</h3><div style="text-align:center"><div class="qrbox" id="qrbox" role="img" aria-label="QR code"></div><p>${t.or}</p><div class="codebig">${fmtCode(o.code)}</div><p class="wait">⏳ ${t.wait}</p>${o.err?`<p class="err">${esc(o.err)}</p>`:''}<button class="rf" onclick="newCode()">${t.nc}</button></div>`;
  else h+=`${back}<h3>Connect to your parent</h3><p>On your parent's phone, choose "Parent / Elder". It shows a QR code and a 6-digit code.</p>
   ${o.cam?`<div class="cam"><video id="vid" playsinline muted></video></div><button class="btn gray" style="width:100%" onclick="stopCamUI()">Stop camera</button>`:`<button class="btn" style="width:100%" onclick="camStart()">📷 Scan QR code</button>`}
   <div class="or">or enter the code</div>
@@ -487,7 +513,7 @@ function renderOB(w){
  if(o.step==='link'&&P&&window.QRCode)new QRCode($('qrbox'),{text:'ELDERCARE:'+o.code,width:170,height:170,colorDark:'#12262B',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
  const i=el.querySelector('#obn');if(i)i.focus();
 }
-$('rbReset').onclick=()=>{stopCam();try{sessionStorage.removeItem('ec_ob')}catch(e){}Object.assign(O.P,{step:'gender',gender:null,name:'',code:null,peer:null});Object.assign(O.F,{step:'gender',gender:null,name:'',peer:null,err:'',status:'',pending:null});renderOB('P');renderOB('F');locAll();render()};
+$('rbReset').onclick=()=>{stopCam();stopPoll();try{sessionStorage.removeItem('ec_ob')}catch(e){}Object.assign(O.P,{step:'gender',gender:null,name:'',code:null,peer:null});Object.assign(O.F,{step:'gender',gender:null,name:'',peer:null,err:'',status:'',pending:null});renderOB('P');renderOB('F');locAll();render()};
 const VT={parent:'Parent / Elder phone',family:'Me / Caregiver phone',both:'Both phones (demo)'};
 const HINT={parent:"This is the parent's phone: big buttons, her own language, and one-tap actions.",family:"This is the caregiver's phone. Use the ☰ menu for Contacts, Speaker and Voice.",both:'Use the parent phone (left) and watch the family phone (right) update. Or use the demo controls below.'};
 let lastRole='family';
