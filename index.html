@@ -92,24 +92,55 @@ input,select{font:inherit;padding:10px;border-radius:10px;border:1px solid var(-
 .menu{position:absolute;right:12px;top:62px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:6px;z-index:8;min-width:200px}
 .menu[hidden]{display:none}.menu button{display:block;width:100%;text-align:left;padding:14px;border-radius:10px;background:none;font-weight:700;font-size:1rem}.menu button[aria-current=true]{background:var(--teal2);color:var(--teal)}
 .rfp{background:var(--teal2);border-radius:14px;padding:10px;margin-top:8px}.rfp label{font-weight:700;font-size:.9rem;display:block;margin-bottom:6px}.rfp .two{display:flex;gap:8px;margin-top:8px}.rfp .two .btn{flex:1;margin:0}.rfp .gray{background:var(--mute)}
+.welcome{max-width:520px;margin:0 auto;padding:48px 20px 40px;text-align:center}
+.welcome .logo{font-size:56px}.welcome h2{font-size:1.9rem;margin:8px 0 4px}.welcome .alt{color:var(--mute);font-size:1.05rem;margin:2px 0}
+.rolecard{display:block;width:100%;text-align:left;background:var(--card);border:3px solid var(--teal);border-radius:24px;padding:22px;margin-top:18px}
+.rolecard:hover,.rolecard:focus-visible{background:var(--teal2)}
+.rolecard .em{font-size:44px;display:block}.rolecard b{font-size:1.5rem;display:block;margin-top:6px}.rolecard span.d{color:var(--mute);font-size:1.05rem;display:block;margin-top:4px}
+.welcome .fine{color:var(--mute);margin-top:22px}
+.rolebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.rolebar button{background:var(--card);border:2px solid var(--teal);color:var(--teal);border-radius:12px;padding:6px 12px;font-weight:700}
+body[data-view=welcome] header,body[data-view=welcome] .stage,body[data-view=welcome] .sim{display:none}
+body:not([data-view=welcome]) #welcome{display:none}
+body[data-view=parent] #colF,body[data-view=family] #colP{display:none}
+.ob{position:absolute;inset:0;background:var(--card);z-index:20;overflow-y:auto;padding:16px;display:none}.ob.on{display:block}
+.ob h3{font-size:1.5rem;margin:10px 0 6px;line-height:1.25}.ob .lc{display:flex;gap:4px;justify-content:flex-end}.ob p{margin:6px 0;color:var(--mute)}
+.gb{display:flex;align-items:center;gap:14px;width:100%;background:var(--teal2);border:3px solid var(--teal);border-radius:22px;padding:18px;font-size:1.5rem;font-weight:700;margin-top:14px;color:var(--ink);text-align:left}.gb span{font-size:2.6rem}
+.bigin{font-size:1.5rem!important;padding:16px!important;text-align:center}
+.ob .back{background:none;color:var(--teal);font-weight:700;font-size:1.05rem;padding:6px 0}.ob .err{color:var(--red);font-weight:700}.ob .wait{font-weight:700;color:var(--teal)}
+.qrbox{background:#fff;padding:12px;border-radius:16px;display:inline-block;margin:6px 0}.codebig{font-size:2.6rem;font-weight:800;letter-spacing:6px;color:var(--teal);text-align:center}
+.cam video{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:16px;background:#000}.ob .or{text-align:center;color:var(--mute);margin:12px 0 4px}.ob .gray{background:var(--mute)}
 .sim{max-width:720px;margin:8px auto 40px;padding:0 16px}
 .sim h2{font-size:1rem;margin:0 0 8px}
 .sim div{display:flex;flex-wrap:wrap;gap:8px}
 .sim button{background:var(--card);border:2px solid var(--teal);color:var(--teal);border-radius:12px;padding:10px 14px;font-weight:700}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 </head>
-<body>
+<body data-view="welcome">
+<main class="welcome" id="welcome">
+  <div class="logo" aria-hidden="true">🧓</div>
+  <h2 id="wq">Who is this device for?</h2>
+  <p class="alt" lang="hi">यह डिवाइस किसके लिए है?</p>
+  <p class="alt" lang="kn">ಈ ಸಾಧನ ಯಾರಿಗಾಗಿ?</p>
+  <button class="rolecard" id="pickParent" aria-describedby="wq"><span class="em" aria-hidden="true">👵</span><b>Parent / Elder</b><span class="d">I will get medicine reminders, meal reminders and an SOS button.</span></button>
+  <button class="rolecard" id="pickFamily" aria-describedby="wq"><span class="em" aria-hidden="true">🧑</span><b>Me / Caregiver</b><span class="d">I look after a parent and want to see how they are doing.</span></button>
+  <p class="fine">You can change this later using "Switch role".</p>
+</main>
 <header>
   <h1>Elder care app: MVP prototype</h1>
-  <p>Use the parent phone (left) and watch the family phone (right) update. Or use the simulator buttons below.</p>
+  <p id="hint"></p>
+  <div class="rolebar"><span>Viewing: <b id="rv"></b></span><button id="rbDemo"></button><button id="rbSwitch">Switch role</button><button id="rbReset">Restart setup</button></div>
 </header>
 
 <div class="stage">
-  <div class="col">
+  <div class="col" id="colP">
     <h2>Parent: Amma's phone</h2>
     <div class="phone" id="pp">
       <div class="screen" id="pscreen"></div>
+      <div class="ob" id="obP"></div>
       <div class="overlay" id="medAlert">
         <div class="pill" id="maPic">💊</div>
         <h3 id="maTitle"></h3>
@@ -128,10 +159,11 @@ input,select{font:inherit;padding:10px;border-radius:10px;border:1px solid var(-
     </div>
   </div>
 
-  <div class="col">
+  <div class="col" id="colF">
     <h2>Family: Ravi's phone</h2>
     <div class="phone" id="fp">
       <div class="toast" id="toast"></div>
+      <div class="ob" id="obF"></div>
       <div class="fbar"><b id="ftitle">Today</b><button class="hamb" id="menub" aria-label="Open menu" aria-haspopup="true" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button></div>
       <div class="menu" id="menu" hidden>
         <button data-t="contacts">👥 Contacts</button>
@@ -222,7 +254,7 @@ function vmCard(){const m=S.voice[0];if(!m)return '';const L=VM[S.lang];
  return `<div class="vmsg ${m.played?'':'new'}"><div class="vm-h">💌 ${L.msg} ${esc(m.from)}</div><div class="vm-t">${m.kind==='text'?esc(m.text):'🎙 '+fmtS(m.dur)}</div><button class="big" id="vmp">${m.played?L.again:L.play}</button>${m.played?(m.replied?`<p style="margin:10px 0 0;font-weight:700">${L.replied}</p>`:`<button class="big alt" id="vmr">${L.reply}</button>`):''}</div>`}
 function playMsg(id){const m=S.voice.find(x=>x.id===id);if(!m)return;
  if(m.kind==='audio'){new Audio(m.url).play().catch(()=>toast('Could not play audio here'))}
- else if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(m.text);u.lang=/[\u0C80-\u0CFF]/.test(m.text)?'kn-IN':/[\u0900-\u097F]/.test(m.text)?'hi-IN':'en-IN';u.rate=.85;speechSynthesis.speak(u)}
+ else if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(locT(m.text));u.lang=/[\u0C80-\u0CFF]/.test(m.text)?'kn-IN':/[\u0900-\u097F]/.test(m.text)?'hi-IN':'en-IN';u.rate=.85;speechSynthesis.speak(u)}
  if(!m.played){m.played=now();addAlert('Amma listened to your message')}
  render()}
 function replyMsg(id){const m=S.voice.find(x=>x.id===id);m.replied=true;addAlert('Amma replied 👍 to your message');render()}
@@ -289,7 +321,7 @@ function renderFamily(){
  let h='';
  if(S.tab==='today'){
   const bad=missed||sos||S.checkin==='missed';
-  h=`<div class="who"><div class="av">A</div><div><b>Amma</b><small>Last active ${S.lastActive}</small></div></div>
+  h=`<div class="who"><div class="av">${people().e&&people().e.gender==='male'?'👴':'👵'}</div><div><b>Amma</b><small>Last active ${S.lastActive}</small></div></div>
   <div class="status ${bad?'bad':''}"><b>${sos?'SOS sent. Call Amma now':bad?'Needs attention':'All good so far'}</b>${bad?(missed?missed+' reminder(s) missed today':'Check-in missing'):'Check-in and medicines on track'}</div>
   <div class="row"><div class="grow"><b>Morning check-in</b><small>Due by 10:00 AM</small></div>${S.checkin===true?'<span class="tag t-ok">Done</span>':S.checkin==='missed'?'<span class="tag t-bad">Missed</span>':'<span class="tag t-wait">Waiting</span>'}</div>
   ${S.meds.map(m=>`<div class="row"><div class="grow"><b>${m.n}</b><small>${m.t} · ${m.d}</small></div>${tag(m.s)}</div>`).join('')}
@@ -394,7 +426,88 @@ $('s2').onclick=ignore;
 $('s3').onclick=()=>{if(S.checkin===true){toast('Amma already checked in. Reset the day first.');return}S.checkin='missed';addAlert('Amma has not checked in by 10:00 AM. Tap to call.',true);render()};
 $('s4').onclick=()=>{const k=S.spk,c=S.contacts,i=S.cid;S=init();S.spk=k;S.contacts=c;S.cid=i;render()};
 $('s5').onclick=()=>{if(!S.spk){toast('Connect a speaker first (Speaker tab)');return}if(!$('medAlert').classList.contains('on')){toast('Ring a medicine reminder first');return}$('maTaken').click()};
-render();
+/* ===== First-time setup: gender, name, linking by QR or code ===== */
+const O={P:{step:'gender',gender:null,name:'',code:null,peer:null},F:{step:'gender',gender:null,name:'',peer:null,err:'',status:'',pending:null,cam:false}};
+const OBT={en:{g:'I am…',m:'Male',f:'Female',n:'What is your name?',np:'Type your name',next:'Next',back:'Back',show:'Show this to your family',or:'Your code',wait:'Waiting for your family to connect…',nc:'New code',ok:'Connected!',with:'You are connected with',go:'Continue'},
+ kn:{g:'ನಾನು…',m:'ಪುರುಷ',f:'ಮಹಿಳೆ',n:'ನಿಮ್ಮ ಹೆಸರೇನು?',np:'ಹೆಸರು ಬರೆಯಿರಿ',next:'ಮುಂದೆ',back:'ಹಿಂದೆ',show:'ಇದನ್ನು ನಿಮ್ಮ ಕುಟುಂಬಕ್ಕೆ ತೋರಿಸಿ',or:'ನಿಮ್ಮ ಕೋಡ್',wait:'ಕುಟುಂಬದವರು ಸೇರುವವರೆಗೆ ಕಾಯುತ್ತಿದೆ…',nc:'ಹೊಸ ಕೋಡ್',ok:'ಸಂಪರ್ಕವಾಯಿತು!',with:'ನೀವು ಸಂಪರ್ಕದಲ್ಲಿದ್ದೀರಿ:',go:'ಮುಂದುವರಿಸಿ'},
+ hi:{g:'मैं हूँ…',m:'पुरुष',f:'महिला',n:'आपका नाम क्या है?',np:'अपना नाम लिखें',next:'आगे',back:'पीछे',show:'यह अपने परिवार को दिखाएँ',or:'आपका कोड',wait:'परिवार के जुड़ने का इंतज़ार…',nc:'नया कोड',ok:'जुड़ गए!',with:'आप जुड़े हैं:',go:'आगे बढ़ें'}};
+const fmtCode=c=>c.slice(0,3)+' '+c.slice(3);
+const genCode=()=>String(Math.floor(100000+Math.random()*900000));
+function people(){const e=O.P.step==='done'?{name:O.P.name,gender:O.P.gender}:O.F.peer,c=O.F.step==='done'?{name:O.F.name,gender:O.F.gender}:O.P.peer;return{e,c}}
+function locT(v){const {e,c}=people();if(e&&e.name){v=v.replace(/Amma|ಅಮ್ಮ|अम्मा/g,e.name);if(e.gender==='male')v=v.replace(/\bher\b/g,'his').replace(/\bHer\b/g,'His')}if(c&&c.name)v=v.replace(/Ravi/g,c.name);return v}
+function locNode(t){if(t.nodeType!==3)return;const p=t.parentNode;if(!p||/^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName))return;if(t.__w!==t.nodeValue)t.__o=t.nodeValue;const v=locT(t.__o);t.__w=v;if(v!==t.nodeValue)t.nodeValue=v}
+function locAll(root){const w=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT),a=[];let n;while(n=w.nextNode())a.push(n);a.forEach(locNode)}
+new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')locNode(m.target);else m.addedNodes.forEach(n=>{if(n.nodeType===3)locNode(n);else if(n.nodeType===1)locAll(n)})})).observe(document.body,{childList:true,subtree:true,characterData:true});
+function saveOB(){try{const o={};['P','F'].forEach(w=>{if(O[w].step==='done')o[w]={gender:O[w].gender,name:O[w].name,peer:O[w].peer}});sessionStorage.setItem('ec_ob',JSON.stringify(o))}catch(e){}}
+function loadOB(){try{const o=JSON.parse(sessionStorage.getItem('ec_ob')||'{}');['P','F'].forEach(w=>{if(o[w])Object.assign(O[w],o[w],{step:'done'})})}catch(e){}}
+/* talking between the two phones (same page, or two tabs of one browser) */
+let bc=null;try{bc=new BroadcastChannel('eldercare-pair');bc.onmessage=e=>handleMsg(e.data)}catch(e){}
+function send(m){handleMsg(m);if(bc)try{bc.postMessage(m)}catch(e){}}
+function afterLink(w){renderOB(w);locAll();setTimeout(()=>{if(O[w].step==='connected')obDone(w)},2600)}
+function handleMsg(m){
+ if(m.t==='join'&&O.P.step==='link'&&O.P.code===m.code){O.P.peer={name:m.name,gender:m.gender};O.P.step='connected';send({t:'ok',code:m.code,name:O.P.name,gender:O.P.gender});afterLink('P')}
+ if(m.t==='ok'&&O.F.step==='link'&&O.F.pending===m.code){clearTimeout(O.F.to);stopCam();O.F.peer={name:m.name,gender:m.gender};O.F.step='connected';O.F.pending=null;O.F.status='';O.F.err='';afterLink('F')}
+}
+function joinCode(code){const f=O.F;f.err='';f.status='Connecting…';f.pending=code;stopCam();renderOB('F');
+ send({t:'join',code,name:f.name,gender:f.gender});
+ clearTimeout(f.to);f.to=setTimeout(()=>{if(f.step==='link'&&f.pending===code){f.pending=null;f.status='';f.err="Could not find this code. Check it, and make sure your parent's phone is showing it.";renderOB('F')}},1800)}
+function codeInput(el){const d=el.value.replace(/\D/g,'').slice(0,6);el.value=d.length>3?d.slice(0,3)+' '+d.slice(3):d;if(d.length===6)joinCode(d)}
+function joinTyped(e){e.preventDefault();const d=$('cin').value.replace(/\D/g,'');if(d.length!==6){O.F.err='Please enter the 6-digit code.';renderOB('F');return}joinCode(d)}
+let stream=null,scanT=null;const scv=document.createElement('canvas');
+function stopCam(){clearTimeout(scanT);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}O.F.cam=false}
+function stopCamUI(){stopCam();renderOB('F')}
+async function camStart(){const f=O.F;f.err='';
+ try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});f.cam=true;renderOB('F');const v=$('vid');v.srcObject=stream;await v.play();scanLoop()}
+ catch(e){stopCam();f.err='Camera is not available here. Type the 6-digit code instead.';renderOB('F')}}
+function scanLoop(){const v=$('vid');if(!v||!O.F.cam)return;
+ if(v.videoWidth&&window.jsQR){scv.width=v.videoWidth;scv.height=v.videoHeight;const x=scv.getContext('2d');x.drawImage(v,0,0);const d=x.getImageData(0,0,scv.width,scv.height),r=jsQR(d.data,d.width,d.height);if(r&&/^ELDERCARE:\d{6}$/.test(r.data)){joinCode(r.data.slice(10));return}}
+ scanT=setTimeout(scanLoop,250)}
+function obLang(k){S.lang=k;renderParent();renderOB('P')}
+function obGender(w,g){O[w].gender=g;O[w].step='name';renderOB(w)}
+function obName(e,w){e.preventDefault();const inp=e.target.querySelector('input'),v=inp.value.trim();if(!v){inp.focus();return}O[w].name=v.slice(0,30);O[w].step='link';if(w==='P')O.P.code=genCode();renderOB(w)}
+function obBack(w){stopCam();O[w].step=O[w].step==='link'?'name':'gender';renderOB(w)}
+function newCode(){O.P.code=genCode();renderOB('P')}
+function obDone(w){O[w].step='done';saveOB();renderOB(w);render();locAll()}
+function renderOB(w){
+ const o=O[w],el=$(w==='P'?'obP':'obF'),on=o.step!=='done';el.classList.toggle('on',on);if(!on){el.innerHTML='';return}
+ const P=w==='P',t=P?OBT[S.lang]:OBT.en,em=(g,care)=>care?(g==='male'?'👨':'👩'):(g==='male'?'👴':'👵');
+ const back=`<button class="back" onclick="obBack('${w}')">← ${t.back}</button>`;
+ let h=P?`<div class="lc">${['en','kn','hi'].map(k=>`<button class="lang" aria-pressed="${S.lang===k}" onclick="obLang('${k}')">${LN[k]}</button>`).join('')}</div>`:'';
+ if(o.step==='gender')h+=`<h3>${t.g}</h3><button class="gb" onclick="obGender('${w}','male')"><span>${em('male',!P)}</span>${t.m}</button><button class="gb" onclick="obGender('${w}','female')"><span>${em('female',!P)}</span>${t.f}</button>`;
+ else if(o.step==='name')h+=`${back}<h3>${t.n}</h3><form onsubmit="obName(event,'${w}')"><input id="obn" class="bigin" maxlength="30" placeholder="${t.np}" value="${esc(o.name)}" autocomplete="off" required><button class="btn" style="width:100%;margin-top:12px;font-size:1.3rem;padding:16px">${t.next}</button></form>`;
+ else if(o.step==='connected'){const pe=o.peer;h+=`<div style="text-align:center;margin-top:30px"><div style="font-size:64px">✅</div><h3>${t.ok}</h3><p style="font-size:1.2rem">${t.with}</p><div style="font-size:3rem">${em(pe.gender,P)}</div><b style="font-size:1.6rem">${esc(pe.name)}</b><button class="btn" style="width:100%;margin-top:22px;font-size:1.3rem;padding:16px" onclick="obDone('${w}')">${t.go}</button></div>`}
+ else if(P)h+=`${back}<h3>${t.show}</h3><div style="text-align:center"><div class="qrbox" id="qrbox" role="img" aria-label="QR code"></div><p>${t.or}</p><div class="codebig">${fmtCode(o.code)}</div><p class="wait">⏳ ${t.wait}</p><button class="rf" onclick="newCode()">${t.nc}</button></div>`;
+ else h+=`${back}<h3>Connect to your parent</h3><p>On your parent's phone, choose "Parent / Elder". It shows a QR code and a 6-digit code.</p>
+  ${o.cam?`<div class="cam"><video id="vid" playsinline muted></video></div><button class="btn gray" style="width:100%" onclick="stopCamUI()">Stop camera</button>`:`<button class="btn" style="width:100%" onclick="camStart()">📷 Scan QR code</button>`}
+  <div class="or">or enter the code</div>
+  <form onsubmit="joinTyped(event)"><input id="cin" class="bigin" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off" oninput="codeInput(this)"><button class="btn" style="width:100%;margin-top:10px">Connect</button></form>
+  ${o.status?`<p class="wait">${o.status}</p>`:''}${o.err?`<p class="err">${esc(o.err)}</p>`:''}
+  ${O.P.step==='link'?`<button class="rf" onclick="joinCode(O.P.code)">🧪 Demo: simulate scanning the QR on the parent phone</button>`:''}`;
+ el.innerHTML=h;
+ if(o.step==='link'&&P&&window.QRCode)new QRCode($('qrbox'),{text:'ELDERCARE:'+o.code,width:170,height:170,colorDark:'#12262B',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+ const i=el.querySelector('#obn');if(i)i.focus();
+}
+$('rbReset').onclick=()=>{stopCam();try{sessionStorage.removeItem('ec_ob')}catch(e){}Object.assign(O.P,{step:'gender',gender:null,name:'',code:null,peer:null});Object.assign(O.F,{step:'gender',gender:null,name:'',peer:null,err:'',status:'',pending:null});renderOB('P');renderOB('F');locAll();render()};
+const VT={parent:'Parent / Elder phone',family:'Me / Caregiver phone',both:'Both phones (demo)'};
+const HINT={parent:"This is the parent's phone: big buttons, her own language, and one-tap actions.",family:"This is the caregiver's phone. Use the ☰ menu for Contacts, Speaker and Voice.",both:'Use the parent phone (left) and watch the family phone (right) update. Or use the demo controls below.'};
+let lastRole='family';
+function setView(v){
+ document.body.dataset.view=v;
+ try{if(v==='welcome')sessionStorage.removeItem('ec_view');else sessionStorage.setItem('ec_view',v)}catch(e){}
+ if(v==='welcome')return;
+ if(v!=='both')lastRole=v;
+ $('rv').textContent=VT[v];$('hint').textContent=HINT[v];
+ $('rbDemo').textContent=v==='both'?'Show one phone':'Demo: show both phones';
+ window.scrollTo(0,0);
+}
+$('pickParent').onclick=()=>setView('parent');
+$('pickFamily').onclick=()=>setView('family');
+$('rbSwitch').onclick=()=>setView('welcome');
+$('rbDemo').onclick=()=>setView(document.body.dataset.view==='both'?lastRole:'both');
+let saved=null;try{saved=sessionStorage.getItem('ec_view')}catch(e){}
+setView(saved&&VT[saved]?saved:'welcome');
+loadOB();renderOB('P');renderOB('F');
+render();locAll();
 </script>
 </body>
 </html>
