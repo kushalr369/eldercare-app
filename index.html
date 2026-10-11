@@ -139,6 +139,7 @@ body[data-view=parent] #colF,body[data-view=family] #colP{display:none}
   <div class="col" id="colP">
     <h2>Parent: Amma's phone</h2>
     <div class="phone" id="pp">
+      <div class="toast" id="ptoast"></div>
       <div class="screen" id="pscreen"></div>
       <div class="ob" id="obP"></div>
       <div class="overlay" id="medAlert">
@@ -227,7 +228,7 @@ const now=()=>new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'
 const tx=k=>T[S.lang][k];
 
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),3200)}
-function addAlert(msg,sev){S.alerts.unshift({msg,sev,at:now()});toast((sev?'🚨 ':'🔔 ')+msg)}
+function addAlert(msg,sev,x){S.alerts.unshift({msg,sev,x,at:now()});toast((sev?'🚨 ':'🔔 ')+msg)}
 const MN={en:{Breakfast:'Breakfast',Lunch:'Lunch',Dinner:'Dinner'},kn:{Breakfast:'ಬೆಳಗಿನ ತಿಂಡಿ',Lunch:'ಮಧ್ಯಾಹ್ನದ ಊಟ',Dinner:'ರಾತ್ರಿ ಊಟ'},hi:{Breakfast:'नाश्ता',Lunch:'दोपहर का खाना',Dinner:'रात का खाना'}};
 const EAT={en:'Had it ✓',kn:'ತಿಂದೆ ✓',hi:'खा लिया ✓'}, NM={en:'Next meal',kn:'ಮುಂದಿನ ಊಟ',hi:'अगला खाना'};
 const mealName=m=>MN[S.lang][m.n];
@@ -255,12 +256,18 @@ function vmCard(){const m=S.voice[0];if(!m)return '';const L=VM[S.lang];
 function playMsg(id){const m=S.voice.find(x=>x.id===id);if(!m)return;
  if(m.kind==='audio'){new Audio(m.url).play().catch(()=>toast('Could not play audio here'))}
  else if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(locT(m.text));u.lang=/[\u0C80-\u0CFF]/.test(m.text)?'kn-IN':/[\u0900-\u097F]/.test(m.text)?'hi-IN':'en-IN';u.rate=.85;speechSynthesis.speak(u)}
- if(!m.played){m.played=now();addAlert('Amma listened to your message')}
+ if(!m.played){m.played=now();addAlert('Amma listened to your message');emit('played',{id:m.id,at:m.played})}
  render()}
-function replyMsg(id){const m=S.voice.find(x=>x.id===id);m.replied=true;addAlert('Amma replied 👍 to your message');render()}
-function addVoice(m){S.voice.unshift({id:++vid,from:'Ravi',at:now(),played:null,replied:false,...m});toast('Message sent to Amma');render()}
+function replyMsg(id){const m=S.voice.find(x=>x.id===id);m.replied=true;addAlert('Amma replied 👍 to your message');emit('reply',{id:m.id});pnote('👍 Reply sent');render()}
+function addVoice(m){const id='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),from=(people().c||{}).name||'Ravi',at=now();
+ S.voice.unshift({id,from,at,played:null,replied:false,...m});
+ if(syncOn()&&m.audio&&m.audio.length>900000)toast('That recording is too long to send. Try a shorter one.');
+ else emit('msg',{id,kind:m.kind,text:m.text,audio:m.audio,dur:m.dur,from,at});
+ toast('Message sent to Amma');render()}
 function sendText(t){t=(t||'').trim();if(t)addVoice({kind:'text',text:t})}
-function sendRec(){addVoice({kind:'audio',url:rec.url,dur:rec.dur});rec.url=null;renderFamily()}
+async function sendRec(){const url=rec.url,dur=rec.dur,blob=rec.blob;rec.url=null;
+ const au=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(blob)});
+ addVoice({kind:'audio',url,dur,audio:au});renderFamily()}
 function discardRec(){rec.url=null;renderFamily()}
 async function recToggle(){
  if(rec.on){rec.mr.stop();return}
@@ -268,7 +275,7 @@ async function recToggle(){
   const st=await navigator.mediaDevices.getUserMedia({audio:true});
   const chunks=[];rec.mr=new MediaRecorder(st);
   rec.mr.ondataavailable=e=>chunks.push(e.data);
-  rec.mr.onstop=()=>{clearInterval(rec.timer);st.getTracks().forEach(t=>t.stop());rec.on=false;rec.url=URL.createObjectURL(new Blob(chunks,{type:rec.mr.mimeType}));rec.dur=Math.max(1,Math.round((Date.now()-rec.t0)/1000));renderFamily()};
+  rec.mr.onstop=()=>{clearInterval(rec.timer);st.getTracks().forEach(t=>t.stop());rec.on=false;rec.blob=new Blob(chunks,{type:rec.mr.mimeType});rec.url=URL.createObjectURL(rec.blob);rec.dur=Math.max(1,Math.round((Date.now()-rec.t0)/1000));renderFamily()};
   rec.mr.start();rec.on=true;rec.url=null;rec.t0=Date.now();
   rec.timer=setInterval(()=>{const x=Math.round((Date.now()-rec.t0)/1000),e=$('rect');if(e)e.textContent=fmtS(x);if(x>=30)rec.mr.stop()},500);
   renderFamily();
@@ -289,10 +296,15 @@ function renderParent(){
   <div class="calls">${S.contacts.slice(0,4).map(c=>`<a class="callb" href="tel:${c.phone.replace(/\s/g,'')}">📞 ${esc(c.name.split(' (')[0])}</a>`).join('')}</div>`;
  document.querySelectorAll('.lang').forEach(b=>b.onclick=()=>{S.lang=b.dataset.l;renderParent()});
  const vp=$('vmp');if(vp)vp.onclick=()=>playMsg(S.voice[0].id);const vr=$('vmr');if(vr)vr.onclick=()=>replyMsg(S.voice[0].id);
- $('okb').onclick=()=>{S.checkin=true;S.lastActive=now();addAlert('Amma checked in: "I\'m OK"');render()};
+ $('okb').onclick=()=>{S.checkin=true;S.lastActive=now();addAlert('Amma checked in: "I\'m OK"');emit('checkin',{});pnote('👍 Your family knows you are OK');render()};
  $('sosb').onclick=()=>{$('sosT').textContent=tx('sosT');$('sosP').textContent=sosNames().length?tx('sosP')+' '+sosNames().join(', '):'No SOS contacts are set. Ask your family to add one.';$('sosYes').textContent=tx('yes');$('sosNo').textContent=tx('no');$('sosScreen').classList.add('on')};
 }
-$('sosYes').onclick=()=>{$('sosScreen').classList.remove('on');const n=sosNames();addAlert('SOS from Amma. Location: Vidyanagar, Hubballi. Call now.',true);if(n.length)S.alerts.unshift({msg:'SOS push + SMS sent to '+n.join(', '),at:now()});render()};
+$('sosYes').onclick=()=>{$('sosScreen').classList.remove('on');
+ const fin=loc=>{const x=loc?' <a href="https://www.google.com/maps?q='+loc.lat+','+loc.lng+'" target="_blank" rel="noopener">Open map</a>':'';
+  addAlert('SOS from Amma! '+(loc?'Location shared.':'Location not available.')+' Call her now.',true,x);
+  if(!syncOn()){const n=sosNames();if(n.length)S.alerts.unshift({msg:'SOS push + SMS sent to '+n.join(', '),at:now()})}
+  emit('sos',{loc});pnote('🆘 SOS sent. Your family has been told.');render()};
+ if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>fin({lat:+p.coords.latitude.toFixed(5),lng:+p.coords.longitude.toFixed(5)}),()=>fin(null),{timeout:4000,maximumAge:60000});else fin(null)};
 $('sosNo').onclick=()=>$('sosScreen').classList.remove('on');
 
 function ring(it){
@@ -306,7 +318,7 @@ function ring(it){
  $('medAlert').classList.add('on');
 }
 $('maTaken').onclick=()=>{cur.s='taken';S.lastActive=now();$('medAlert').classList.remove('on');
- if(cur.meal)addAlert('Amma had her '+cur.n.toLowerCase());else{cur.stock=Math.max(0,cur.stock-1);addAlert('Amma took her '+cur.n);checkStock(cur)}
+ if(cur.meal){addAlert('Amma had her '+cur.n.toLowerCase());emit('meal',{n:cur.n})}else{cur.stock=Math.max(0,cur.stock-1);addAlert('Amma took her '+cur.n);checkStock(cur);emit('med',{n:cur.n,stock:cur.stock})}
  render()};
 $('maLater').onclick=()=>{$('medAlert').classList.remove('on')};
 function ignore(){
@@ -382,7 +394,7 @@ function renderFamily(){
    <p class="note">${S.pick==='alexa'?'Amma or you enable our skill once in the Alexa app and allow reminders. After that, reminders are set for her remotely.':'Google has closed voice actions for outside apps, so this option is beta. It needs a small always-on hub at home on the same Wi-Fi to cast the message to the speaker.'}</p>
    <button class="btn" style="width:100%" onclick="spkConnect()">Connect ${S.pick==='alexa'?'Alexa':'Google Home'}</button>`;
  }else{
-  h=`<div class="sec" style="margin-top:0">Alerts</div>`+(S.alerts.length?S.alerts.map(a=>`<div class="alert ${a.sev?'sev':''}">${a.msg}<small>${a.at}</small></div>`).join(''):'<div class="empty">No alerts yet. Use the parent phone or simulator to create some.</div>');
+  h=`<div class="sec" style="margin-top:0">Alerts</div>`+(S.alerts.length?S.alerts.map(a=>`<div class="alert ${a.sev?'sev':''}">${a.msg}${a.x||''}<small>${a.at}</small></div>`).join(''):'<div class="empty">No alerts yet. Use the parent phone or simulator to create some.</div>');
  }
  $('fscreen').innerHTML=h;
  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===S.tab));
@@ -438,7 +450,7 @@ function locT(v){const {e,c}=people();if(e&&e.name){v=v.replace(/Amma|ಅಮ್�
 function locNode(t){if(t.nodeType!==3)return;const p=t.parentNode;if(!p||/^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName))return;if(t.__w!==t.nodeValue)t.__o=t.nodeValue;const v=locT(t.__o);t.__w=v;if(v!==t.nodeValue)t.nodeValue=v}
 function locAll(root){const w=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT),a=[];let n;while(n=w.nextNode())a.push(n);a.forEach(locNode)}
 new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')locNode(m.target);else m.addedNodes.forEach(n=>{if(n.nodeType===3)locNode(n);else if(n.nodeType===1)locAll(n)})})).observe(document.body,{childList:true,subtree:true,characterData:true});
-function saveOB(){try{const o={};['P','F'].forEach(w=>{if(O[w].step==='done')o[w]={gender:O[w].gender,name:O[w].name,peer:O[w].peer}});sessionStorage.setItem('ec_ob',JSON.stringify(o))}catch(e){}}
+function saveOB(){try{const o={};['P','F'].forEach(w=>{if(O[w].step==='done')o[w]={gender:O[w].gender,name:O[w].name,peer:O[w].peer,code:O[w].code}});sessionStorage.setItem('ec_ob',JSON.stringify(o))}catch(e){}}
 function loadOB(){try{const o=JSON.parse(sessionStorage.getItem('ec_ob')||'{}');['P','F'].forEach(w=>{if(o[w])Object.assign(O[w],o[w],{step:'done'})})}catch(e){}}
 /* ===== Online linking with Supabase (used when the two values below are filled in) ===== */
 const SB_URL='https://prmwojzalzrgstgntcty.supabase.co', SB_KEY='sb_publishable_XCm3AaED3dnIiFPazwjY8g_TUZuQLNW';
@@ -462,9 +474,33 @@ async function joinRemote(code){const f=O.F;
  try{const since=new Date(Date.now()-15*60000).toISOString();
   const r=await sb('pairings?code=eq.'+code+'&status=eq.waiting&created_at=gte.'+encodeURIComponent(since),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({caregiver_name:f.name,caregiver_gender:f.gender,status:'linked'})});
   if(f.pending!==code)return;
-  if(r&&r.length){f.peer={name:r[0].elder_name,gender:r[0].elder_gender};f.step='connected';f.pending=null;f.status='';f.err='';afterLink('F')}
+  if(r&&r.length){f.code=code;f.peer={name:r[0].elder_name,gender:r[0].elder_gender};f.step='connected';f.pending=null;f.status='';f.err='';afterLink('F')}
   else{f.pending=null;f.status='';f.err='Could not find this code, or it was already used or expired. Ask your parent to check their screen.';renderOB('F')}}
  catch(e){f.pending=null;f.status='';f.err='Could not reach the server. Check your internet and try again.';renderOB('F')}}
+/* ===== Live sync of actions between the two phones (needs the Supabase 'events' table) ===== */
+const myRole=()=>{const v=document.body.dataset.view;return v==='parent'?'P':v==='family'?'F':null};
+function syncOn(){const r=myRole();return !!(sbOn()&&r&&O[r].step==='done'&&O[r].code)}
+let evLast=0,evT=null,evKey='';
+function emit(kind,payload){if(!syncOn())return;const r=myRole();sb('events',{method:'POST',body:JSON.stringify({code:O[r].code,from_role:r,kind,payload})}).catch(()=>{})}
+function pnote(m){const t=$('ptoast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),3500)}
+function alarm(){try{navigator.vibrate&&navigator.vibrate([300,150,300,150,600]);const c=new (window.AudioContext||window.webkitAudioContext)();[0,.35,.7].forEach(t=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=880;g.gain.value=.15;o.connect(g);g.connect(c.destination);o.start(c.currentTime+t);o.stop(c.currentTime+t+.2)})}catch(e){}}
+function applyEvent(r,e){const p=e.payload||{};
+ if(r==='F'){
+  if(e.kind==='checkin'){S.checkin=true;S.lastActive=now();addAlert('Amma checked in: "I\'m OK"')}
+  else if(e.kind==='sos'){const x=p.loc?' <a href="https://www.google.com/maps?q='+p.loc.lat+','+p.loc.lng+'" target="_blank" rel="noopener">Open map</a>':'';addAlert('SOS from Amma! '+(p.loc?'Location shared.':'Location not available.')+' Call her now.',true,x);alarm()}
+  else if(e.kind==='med'){const m=S.meds.find(x=>x.n===p.n);if(m){m.s='taken';m.stock=p.stock;S.lastActive=now();addAlert('Amma took her '+m.n);checkStock(m)}}
+  else if(e.kind==='meal'){const m=S.meals.find(x=>x.n===p.n);if(m){m.s='taken';addAlert('Amma had her '+m.n.toLowerCase())}}
+  else if(e.kind==='played'){const m=S.voice.find(x=>x.id===p.id);if(m&&!m.played){m.played=p.at;addAlert('Amma listened to your message')}}
+  else if(e.kind==='reply'){const m=S.voice.find(x=>x.id===p.id);if(m&&!m.replied){m.replied=true;addAlert('Amma replied 👍 to your message')}}
+ }else if(e.kind==='msg'&&!S.voice.find(x=>x.id===p.id)){S.voice.unshift({id:p.id,kind:p.kind,text:p.text,url:p.audio,dur:p.dur,from:p.from,at:p.at,played:null,replied:false});pnote('💌 New message from '+p.from)}
+ render()}
+function startSync(){clearTimeout(evT);if(!syncOn())return;const r=myRole(),code=O[r].code,key=r+code;if(key!==evKey){evKey=key;evLast=0}
+ const tick=async()=>{if(!syncOn()||myRole()!==r)return;
+  try{const since=new Date(new Date().setHours(0,0,0,0)).toISOString();
+   const rows=await sb('events?code=eq.'+code+'&from_role=neq.'+r+'&id=gt.'+evLast+'&created_at=gte.'+encodeURIComponent(since)+'&order=id.asc&limit=50');
+   (rows||[]).forEach(e=>{evLast=Math.max(evLast,e.id);applyEvent(r,e)})}catch(err){}
+  evT=setTimeout(tick,2000)};
+ tick()}
 /* talking between the two phones (same page, or two tabs of one browser) */
 let bc=null;try{bc=new BroadcastChannel('eldercare-pair');bc.onmessage=e=>handleMsg(e.data)}catch(e){}
 function send(m){handleMsg(m);if(bc)try{bc.postMessage(m)}catch(e){}}
@@ -493,7 +529,7 @@ function obGender(w,g){O[w].gender=g;O[w].step='name';renderOB(w)}
 async function obName(e,w){e.preventDefault();const inp=e.target.querySelector('input'),v=inp.value.trim();if(!v){inp.focus();return}O[w].name=v.slice(0,30);O[w].step='link';if(w==='P'){O.P.code=genCode();O.P.err='';if(sbOn())await sbCreate();renderOB('P');startPoll()}else renderOB(w)}
 function obBack(w){stopCam();stopPoll();O[w].step=O[w].step==='link'?'name':'gender';renderOB(w)}
 async function newCode(){stopPoll();O.P.code=genCode();if(sbOn())await sbCreate();renderOB('P');startPoll()}
-function obDone(w){O[w].step='done';saveOB();renderOB(w);render();locAll()}
+function obDone(w){O[w].step='done';saveOB();renderOB(w);render();locAll();startSync()}
 function renderOB(w){
  const o=O[w],el=$(w==='P'?'obP':'obF'),on=o.step!=='done';el.classList.toggle('on',on);if(!on){el.innerHTML='';return}
  const P=w==='P',t=P?OBT[S.lang]:OBT.en,em=(g,care)=>care?(g==='male'?'👨':'👩'):(g==='male'?'👴':'👵');
@@ -518,7 +554,7 @@ const VT={parent:'Parent / Elder phone',family:'Me / Caregiver phone',both:'Both
 const HINT={parent:"This is the parent's phone: big buttons, her own language, and one-tap actions.",family:"This is the caregiver's phone. Use the ☰ menu for Contacts, Speaker and Voice.",both:'Use the parent phone (left) and watch the family phone (right) update. Or use the demo controls below.'};
 let lastRole='family';
 function setView(v){
- document.body.dataset.view=v;
+ document.body.dataset.view=v;clearTimeout(evT);if(typeof startSync==='function')setTimeout(startSync,0);
  try{if(v==='welcome')sessionStorage.removeItem('ec_view');else sessionStorage.setItem('ec_view',v)}catch(e){}
  if(v==='welcome')return;
  if(v!=='both')lastRole=v;
@@ -532,7 +568,7 @@ $('rbSwitch').onclick=()=>setView('welcome');
 $('rbDemo').onclick=()=>setView(document.body.dataset.view==='both'?lastRole:'both');
 let saved=null;try{saved=sessionStorage.getItem('ec_view')}catch(e){}
 setView(saved&&VT[saved]?saved:'welcome');
-loadOB();renderOB('P');renderOB('F');
+loadOB();renderOB('P');renderOB('F');startSync();
 render();locAll();
 </script>
 </body>
